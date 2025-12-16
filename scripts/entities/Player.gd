@@ -44,7 +44,7 @@ func _ready():
 	
 	var hurt_shape = CollisionShape2D.new()
 	hurt_shape.shape = CircleShape2D.new()
-	hurt_shape.shape.radius = 35.0
+	hurt_shape.shape.radius = 61.0
 	hurtbox.add_child(hurt_shape)
 	
 	hurtbox.body_entered.connect(_on_hurtbox_body_entered)
