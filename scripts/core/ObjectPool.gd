@@ -67,4 +67,9 @@ func _disable_instance(instance: Node, scene_path: String):
 	if not pools.has(scene_path):
 		pools[scene_path] = []
 	
+	# Critical Fix: Prevent adding the same instance multiple times.
+	# This happens if an object triggers return_instance multiple times (e.g. hits 2 enemies same frame).
+	if instance in pools[scene_path]:
+		return
+	
 	pools[scene_path].append(instance)
