@@ -16,5 +16,5 @@ data_*/
 mono_crash.*.json
 
 # project files
-.vscode
-.antigravity
+.vscode/
+.antigravity/
