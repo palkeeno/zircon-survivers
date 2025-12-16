@@ -1,0 +1,38 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="zircon-survivers"
+run/main_scene="res://scenes/game/Main.tscn"
+config/features=PackedStringArray("4.5", "Mobile")
+config/icon="res://icon.svg"
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+
+[autoload]
+
+GameManager="*res://scripts/core/GameManager.gd"
+PoolManager="*res://scripts/core/ObjectPool.gd"
+
+[dotnet]
+
+project/assembly_name="zircon-survivers"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="mobile"
