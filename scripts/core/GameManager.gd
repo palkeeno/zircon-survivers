@@ -14,6 +14,10 @@ enum GameState {
 	LEVEL_UP
 }
 
+var current_state: GameState = GameState.MENU
+var player_reference: Node2D = null
+
+
 func trigger_level_up_choice():
 	# Don't pause physics completely, but maybe stop Spawner?
 	# Classic survivor pauses everything.
@@ -22,8 +26,17 @@ func trigger_level_up_choice():
 		current_state = GameState.LEVEL_UP
 		get_tree().paused = true
 		emit_signal("level_up_choice_requested")
-var current_state: GameState = GameState.MENU
-var player_reference: Node2D = null
+func trigger_game_over():
+	if current_state != GameState.GAME_OVER:
+		current_state = GameState.GAME_OVER
+		# Don't pause immediately if we want an animation, but for now pause.
+		# get_tree().paused = true # Maybe handled by UI?
+		emit_signal("game_over")
+
+func reset_game():
+	current_state = GameState.PLAYING
+	# Reload scene handles most reset, but we might need to reset autoload state if any.
+	player_reference = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS # Keep running even when paused
@@ -40,13 +53,7 @@ func pause_game():
 		emit_signal("game_paused", true)
 
 func resume_game():
-	if current_state == GameState.PAUSED:
+	if current_state == GameState.PAUSED or current_state == GameState.LEVEL_UP:
 		current_state = GameState.PLAYING
 		get_tree().paused = false
 		emit_signal("game_paused", false)
-
-func trigger_game_over():
-	if current_state != GameState.GAME_OVER:
-		current_state = GameState.GAME_OVER
-		get_tree().paused = true
-		emit_signal("game_over")

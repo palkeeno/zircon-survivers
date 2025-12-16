@@ -35,40 +35,83 @@ func _ready():
 	else:
 		print("Error: GameManager singleton not found at /root/GameManager")
 
-	# Add Hurtbox dynamically to avoid scene editing for now (or use what we have)
+	# 1. Hurtbox (Enemy Collision)
 	var hurtbox = Area2D.new()
 	hurtbox.name = "Hurtbox"
-	# Collision Mask: Enemy is Layer 3 (Value 4)
 	hurtbox.collision_layer = 0
-	hurtbox.collision_mask = 4 # Detects Enemies
+	hurtbox.collision_mask = 4 # Enemy Layer (3, value 4)
 	add_child(hurtbox)
 	
-	var shape = CollisionShape2D.new()
-	shape.shape = CircleShape2D.new()
-	shape.shape.radius = 30.0 # Slightly smaller than body
-	hurtbox.add_child(shape)
+	var hurt_shape = CollisionShape2D.new()
+	hurt_shape.shape = CircleShape2D.new()
+	hurt_shape.shape.radius = 35.0
+	hurtbox.add_child(hurt_shape)
 	
 	hurtbox.body_entered.connect(_on_hurtbox_body_entered)
 	hurtbox.body_exited.connect(_on_hurtbox_body_exited)
 
+	# 2. Magnet Area (XP Collection)
+	var magnet = Area2D.new()
+	magnet.name = "MagnetArea"
+	magnet.collision_layer = 0
+	magnet.collision_mask = 16 # Loot Layer (5, value 16)
+	add_child(magnet)
+	
+	var magnet_shape = CollisionShape2D.new()
+	magnet_shape.shape = CircleShape2D.new()
+	magnet_shape.shape.radius = pickup_range
+	magnet.add_child(magnet_shape)
+	
+	# XPGem is an Area2D, so we use area_entered, not body_entered
+	magnet.area_entered.connect(_on_magnet_area_entered)
+
+	# Listen to Game Paused signal to check for sequential level ups
+	if has_node("/root/GameManager"):
+		get_node("/root/GameManager").game_paused.connect(_on_game_paused)
+
+func _on_magnet_area_entered(area):
+	# If area is XPGem (has 'collect' method)
+	if area.has_method("collect"):
+		area.collect(self)
+
 # Damage Handling
+@export var armor: float = 0.0
+
 var _touching_enemies = []
 var _damage_timer = 0.0
 
 func _process(delta):
+	# Validate touching enemies (remove dead/pooled ones)
+	for i in range(_touching_enemies.size() - 1, -1, -1):
+		var enemy = _touching_enemies[i]
+		if not is_instance_valid(enemy) or not enemy.is_inside_tree() or enemy.process_mode == Node.PROCESS_MODE_DISABLED:
+			_touching_enemies.remove_at(i)
+			
 	if _touching_enemies.size() > 0:
 		_damage_timer -= delta
 		if _damage_timer <= 0:
-			take_damage(5.0 * _touching_enemies.size()) # 5 dmg per enemy roughly
-			_damage_timer = 0.5 # 2 ticks per second
+			# Calculate total damage from all touching enemies
+			var total_damage = 0.0
+			for enemy in _touching_enemies:
+				# Assume Enemy has 'damage' property. If not, default to 5.0
+				var dmg = enemy.damage if "damage" in enemy else 10.0
+				total_damage += max(0.0, dmg - armor)
+			
+			if total_damage > 0:
+				take_damage(total_damage)
+			
+			_damage_timer = 0.1 # 10 ticks per second (fast interval)
 
 func _on_hurtbox_body_entered(body):
 	if body.is_in_group("enemies"):
-		_touching_enemies.append(body)
-		# Immediate damage on touch? Or just start timer
+		if body not in _touching_enemies:
+			_touching_enemies.append(body)
+		
+		# Immediate damage on touch
 		if _damage_timer <= 0:
-			take_damage(5.0)
-			_damage_timer = 0.5
+			var dmg = body.damage if "damage" in body else 10.0
+			take_damage(max(0.0, dmg - armor))
+			_damage_timer = 0.1
 
 func _on_hurtbox_body_exited(body):
 	if body in _touching_enemies:
@@ -83,22 +126,34 @@ func take_damage(amount: float):
 func die():
 	print("Player Died")
 	emit_signal("player_died")
-	# GameManager.trigger_game_over() # Implement later
+	if has_node("/root/GameManager"):
+		get_node("/root/GameManager").trigger_game_over()
 	queue_free()
+
+func _on_game_paused(is_paused: bool):
+	if not is_paused:
+		# Game Resumed. Check if we have enough XP for another level up.
+		_check_level_up()
 
 func add_experience(amount: int):
 	experience += amount
-	
-	while experience >= next_level_xp:
+	emit_signal("xp_changed", experience, next_level_xp)
+	_check_level_up()
+
+func _check_level_up():
+	# If already leveling up (GameManager state), don't trigger again to avoid glitches
+	# checking paused state might be enough if GM handles it correctly
+	if experience >= next_level_xp:
 		experience -= next_level_xp
 		level += 1
 		next_level_xp = int(next_level_xp * 1.2) + 5
+		
 		emit_signal("level_up", level)
+		emit_signal("xp_changed", experience, next_level_xp)
 		print("Level Up! New Level: ", level)
+		
 		if has_node("/root/GameManager"):
 			get_node("/root/GameManager").trigger_level_up_choice()
-	
-	emit_signal("xp_changed", experience, next_level_xp)
 
 
 func _physics_process(_delta):

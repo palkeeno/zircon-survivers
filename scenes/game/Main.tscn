@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" path="res://scenes/entities/Enemy.tscn" id="4_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/ui/LevelUpScreen.tscn" id="5_levelup"]
 [ext_resource type="PackedScene" path="res://scenes/game/Background.tscn" id="6_bg"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="7_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/GameOverScreen.tscn" id="8_gameover"]
 
 [node name="Main" type="Node2D"]
 y_sort_enabled = true
@@ -14,8 +16,10 @@ y_sort_enabled = true
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
+[node name="HUD" parent="CanvasLayer" instance=ExtResource("7_hud")]
 [node name="VirtualJoystick" parent="CanvasLayer" instance=ExtResource("2_joystick")]
 [node name="LevelUpScreen" parent="CanvasLayer" instance=ExtResource("5_levelup")]
+[node name="GameOverScreen" parent="CanvasLayer" instance=ExtResource("8_gameover")]
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 joystick_path = NodePath("../CanvasLayer/VirtualJoystick")

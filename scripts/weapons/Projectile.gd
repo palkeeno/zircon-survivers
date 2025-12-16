@@ -3,7 +3,7 @@ class_name Projectile
 
 @export var speed: float = 400.0
 @export var damage: float = 5.0
-@export var life_time: float = 3.0
+@export var life_time: float = 10.0
 
 var _direction: Vector2 = Vector2.RIGHT
 var _life_timer: float = 0.0

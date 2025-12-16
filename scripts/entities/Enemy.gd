@@ -40,7 +40,16 @@ func take_damage(amount: float):
 # ... existing code ...
 
 func die():
-	# Drop XP
+	# Drop XP deferred to avoid physics callback errors (add_child)
+	call_deferred("_drop_xp")
+
+	# Return to pool instead of queue_free
+	if has_node("/root/PoolManager"):
+		get_node("/root/PoolManager").return_instance(self, scene_file_path)
+	else:
+		queue_free()
+
+func _drop_xp():
 	if xp_gem_scene and has_node("/root/PoolManager"):
 		var gem = get_node("/root/PoolManager").get_instance(xp_gem_scene)
 		if gem:
@@ -48,9 +57,3 @@ func die():
 				gem.spawn(global_position, xp_value)
 			else:
 				gem.global_position = global_position
-
-	# Return to pool instead of queue_free
-	if has_node("/root/PoolManager"):
-		get_node("/root/PoolManager").return_instance(self, scene_file_path)
-	else:
-		queue_free()
