@@ -5,9 +5,6 @@ class_name TargetedStrike
 @export var strike_radius: float = 80.0
 @export var strikes_per_fire: int = 1
 
-# Multiplier applied to damage (can be overridden/set by the weapon/owner setup).
-var owner_damage_mult: float = 1.0
-
 var _nearest_enemy: Node2D = null
 
 func _try_shoot() -> bool:

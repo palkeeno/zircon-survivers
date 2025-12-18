@@ -28,22 +28,4 @@ func _damage_enemies_in_radius():
 		if enemy.has_method("take_damage"):
 			var dist2 = global_position.distance_squared_to(enemy.global_position)
 			if dist2 <= r2:
-				enemy.take_damage(damage * _get_owner_damage_mult())
-
-func _get_owner_damage_mult() -> float:
-	# Fall back to 1.0 if the owning/parent node doesn't expose a multiplier.
-	var source := get_parent()
-	if source == null:
-		source = get_owner() as Node
-
-	if source != null:
-		var mult = source.get("damage_mult")
-		if mult == null:
-			mult = source.get("owner_damage_mult")
-		if mult == null:
-			mult = source.get("damage_multiplier")
-
-		if typeof(mult) == TYPE_INT or typeof(mult) == TYPE_FLOAT:
-			return float(mult)
-
-	return 1.0
+				enemy.take_damage(damage * owner_damage_mult)

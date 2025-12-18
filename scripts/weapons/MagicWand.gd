@@ -3,13 +3,6 @@ class_name MagicWand
 
 @export var projectile_scene: PackedScene
 @export var scan_interval: float = 0.1
-@export var shots_per_fire: int = 1
-
-# Projectile modifiers (defaults keep behavior unchanged if not configured elsewhere).
-@export var owner_damage_mult: float = 1.0
-@export var projectile_scale: float = 1.0
-@export var projectile_pierce: int = 0
-@export var projectile_explosion_radius: float = 0.0
 
 var _nearest_enemy: Node2D = null
 
