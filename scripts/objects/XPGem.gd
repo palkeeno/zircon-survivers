@@ -8,6 +8,9 @@ var _target: Node2D = null
 var _is_collected: bool = false
 var _velocity: Vector2 = Vector2.ZERO
 
+func _ready():
+	add_to_group("loot")
+
 func spawn(pos: Vector2, xp_value: int):
 	global_position = pos
 	value = xp_value

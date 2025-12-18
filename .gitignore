@@ -1,6 +1,7 @@
 # Godot 4+ specific ignores
 .godot/
 .nomedia
+godot_build_solutions.log
 
 # Godot-specific ignores
 .import/
@@ -17,4 +18,6 @@ mono_crash.*.json
 
 # project files
 .vscode/
-.antigravity/
+instructions.md
+zircon-survivers.sln
+zircon-survivers.csproj

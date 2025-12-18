@@ -4,6 +4,16 @@ class_name Weapon
 @export var cooldown: float = 1.0
 @export var damage: float = 5.0
 
+# Common upgrade-friendly parameters (not all weapons must use all of these).
+@export var shots_per_fire: int = 1
+@export var projectile_scale: float = 1.0
+@export var projectile_pierce: int = 0
+@export var projectile_explosion_radius: float = 0.0
+
+# Multipliers set by Player/loadout (passives). Keep separate from per-weapon upgrades.
+var owner_damage_mult: float = 1.0
+var owner_cooldown_mult: float = 1.0
+
 var _cooldown_timer: Timer
 
 func _ready():
@@ -25,6 +35,8 @@ func _try_shoot() -> bool:
 	return false
 
 func _start_cooldown():
+	# Ensure latest cooldown is respected.
+	_cooldown_timer.wait_time = cooldown * owner_cooldown_mult
 	_cooldown_timer.start()
 
 func _on_cooldown_ready():

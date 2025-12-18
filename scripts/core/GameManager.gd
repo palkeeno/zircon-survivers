@@ -6,6 +6,12 @@ signal game_over
 signal game_paused(is_paused)
 signal level_up_choice_requested
 
+# Time / wave signals
+signal run_time_changed(time_sec)
+signal minute_reached(minute)
+signal miniboss_requested(minute)
+signal boss_requested(boss_index)
+
 enum GameState {
 	MENU,
 	PLAYING,
@@ -16,6 +22,15 @@ enum GameState {
 
 var current_state: GameState = GameState.MENU
 var player_reference: Node2D = null
+
+# Run timer (seconds since run started). Only advances in PLAYING.
+var run_time_sec: float = 0.0
+var _last_emitted_second: int = -1
+var _last_emitted_minute: int = -1
+
+# Scheduling: miniboss every minute, boss every 3 minutes.
+var _next_miniboss_minute: int = 1
+var _next_boss_index: int = 1
 
 
 func trigger_level_up_choice():
@@ -37,12 +52,50 @@ func reset_game():
 	current_state = GameState.PLAYING
 	# Reload scene handles most reset, but we might need to reset autoload state if any.
 	player_reference = null
+	_reset_run_timer()
+
+func _reset_run_timer():
+	run_time_sec = 0.0
+	_last_emitted_second = -1
+	_last_emitted_minute = -1
+	_next_miniboss_minute = 1
+	_next_boss_index = 1
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS # Keep running even when paused
+	_reset_run_timer()
+
+func _process(delta: float) -> void:
+	# Advance run timer only while actually playing.
+	if current_state != GameState.PLAYING:
+		return
+
+	run_time_sec += delta
+
+	# Emit at most once per second to keep UI cheap.
+	var sec_i := int(floor(run_time_sec))
+	if sec_i != _last_emitted_second:
+		_last_emitted_second = sec_i
+		emit_signal("run_time_changed", run_time_sec)
+
+		var minute_i: int = int(floor(run_time_sec / 60.0))
+		if minute_i != _last_emitted_minute:
+			_last_emitted_minute = minute_i
+			emit_signal("minute_reached", minute_i)
+
+		# Mini-boss every minute (1,2,3,...)
+		if minute_i >= _next_miniboss_minute:
+			emit_signal("miniboss_requested", _next_miniboss_minute)
+			_next_miniboss_minute += 1
+
+			# Boss every 3 minutes (3,6,9,...) -> represented by boss_index 1,2,3...
+			if (_next_miniboss_minute - 1) % 3 == 0:
+				emit_signal("boss_requested", _next_boss_index)
+				_next_boss_index += 1
 
 func start_game():
 	current_state = GameState.PLAYING
+	_reset_run_timer()
 	emit_signal("game_started")
 	get_tree().paused = false
 

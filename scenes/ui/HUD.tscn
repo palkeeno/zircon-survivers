@@ -55,6 +55,10 @@ text = "LV 1"
 [node name="TopRow" type="HBoxContainer" parent="Control/MarginContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="LoadoutLabel" type="Label" parent="Control/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "W: - - - -\nS: - - - -"
+
 [node name="HPContainer" type="HBoxContainer" parent="Control/MarginContainer/VBoxContainer/TopRow"]
 layout_mode = 2
 size_flags_horizontal = 3

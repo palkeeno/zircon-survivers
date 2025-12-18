@@ -4,6 +4,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/VirtualJoystick.tscn" id="2_joystick"]
 [ext_resource type="Script" path="res://scripts/core/EnemySpawner.gd" id="3_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/entities/Enemy.tscn" id="4_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/entities/Miniboss.tscn" id="9_miniboss"]
+[ext_resource type="PackedScene" path="res://scenes/entities/Boss.tscn" id="10_boss"]
 [ext_resource type="PackedScene" path="res://scenes/ui/LevelUpScreen.tscn" id="5_levelup"]
 [ext_resource type="PackedScene" path="res://scenes/game/Background.tscn" id="6_bg"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="7_hud"]
@@ -27,6 +29,8 @@ joystick_path = NodePath("../CanvasLayer/VirtualJoystick")
 [node name="EnemySpawner" type="Node" parent="."]
 script = ExtResource("3_spawner")
 enemy_scene = ExtResource("4_enemy")
+miniboss_scene = ExtResource("9_miniboss")
+boss_scene = ExtResource("10_boss")
 container_path = NodePath("..")
 spawn_interval = 0.5
 

@@ -12,13 +12,8 @@ config_version=5
 
 config/name="zircon-survivers"
 run/main_scene="res://scenes/game/Main.tscn"
-config/features=PackedStringArray("4.5", "Mobile")
+config/features=PackedStringArray("4.5", "C#", "Mobile")
 config/icon="res://icon.svg"
-
-[input_devices]
-
-pointing/emulate_touch_from_mouse=true
-
 
 [autoload]
 
@@ -32,6 +27,10 @@ project/assembly_name="zircon-survivers"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
 
 [rendering]
 

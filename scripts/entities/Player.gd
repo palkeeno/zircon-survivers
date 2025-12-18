@@ -5,6 +5,25 @@ class_name Player
 @export var max_hp : float = 100.0
 @export var pickup_range : float = 50.0 # Used by magnet logic later if needed
 
+var _base_speed: float
+var _base_max_hp: float
+var _base_pickup_range: float
+var _base_armor: float
+
+var _regen_per_sec: float = 0.0
+var _stat_damage_mult: float = 1.0
+var _stat_cooldown_mult: float = 1.0
+
+var _magnet_area: Area2D
+var _magnet_shape: CollisionShape2D
+
+var _weapon_nodes := {} # ability_id -> Node
+
+var _is_phased: bool = false
+var _phase_timer: float = 0.0
+
+@export var damage_zone_scene: PackedScene = preload("res://scenes/weapons/DamageZone.tscn")
+
 var current_hp : float
 var experience : int = 0
 var level : int = 1
@@ -22,6 +41,11 @@ signal player_died
 var _joystick : Control
 
 func _ready():
+	_base_speed = speed
+	_base_max_hp = max_hp
+	_base_pickup_range = pickup_range
+	_base_armor = armor
+
 	current_hp = max_hp
 	emit_signal("hp_changed", current_hp, max_hp)
 	emit_signal("xp_changed", experience, next_level_xp)
@@ -51,23 +75,25 @@ func _ready():
 	hurtbox.body_exited.connect(_on_hurtbox_body_exited)
 
 	# 2. Magnet Area (XP Collection)
-	var magnet = Area2D.new()
-	magnet.name = "MagnetArea"
-	magnet.collision_layer = 0
-	magnet.collision_mask = 16 # Loot Layer (5, value 16)
-	add_child(magnet)
+	_magnet_area = Area2D.new()
+	_magnet_area.name = "MagnetArea"
+	_magnet_area.collision_layer = 0
+	_magnet_area.collision_mask = 16 # Loot Layer (5, value 16)
+	add_child(_magnet_area)
 	
-	var magnet_shape = CollisionShape2D.new()
-	magnet_shape.shape = CircleShape2D.new()
-	magnet_shape.shape.radius = pickup_range
-	magnet.add_child(magnet_shape)
+	_magnet_shape = CollisionShape2D.new()
+	_magnet_shape.shape = CircleShape2D.new()
+	_magnet_shape.shape.radius = pickup_range
+	_magnet_area.add_child(_magnet_shape)
 	
 	# XPGem is an Area2D, so we use area_entered, not body_entered
-	magnet.area_entered.connect(_on_magnet_area_entered)
+	_magnet_area.area_entered.connect(_on_magnet_area_entered)
 
 	# Listen to Game Paused signal to check for sequential level ups
 	if has_node("/root/GameManager"):
 		get_node("/root/GameManager").game_paused.connect(_on_game_paused)
+
+	_bootstrap_existing_weapon_nodes()
 
 func _on_magnet_area_entered(area):
 	# If area is XPGem (has 'collect' method)
@@ -81,6 +107,17 @@ var _touching_enemies = []
 var _damage_timer = 0.0
 
 func _process(delta):
+	# Phase timer
+	if _is_phased:
+		_phase_timer -= delta
+		if _phase_timer <= 0.0:
+			_is_phased = false
+
+	# Passive regen
+	if _regen_per_sec > 0.0 and current_hp > 0.0 and current_hp < max_hp:
+		current_hp = min(max_hp, current_hp + _regen_per_sec * delta)
+		emit_signal("hp_changed", current_hp, max_hp)
+
 	# Validate touching enemies (remove dead/pooled ones)
 	for i in range(_touching_enemies.size() - 1, -1, -1):
 		var enemy = _touching_enemies[i]
@@ -118,6 +155,8 @@ func _on_hurtbox_body_exited(body):
 		_touching_enemies.erase(body)
 
 func take_damage(amount: float):
+	if _is_phased:
+		return
 	current_hp -= amount
 	emit_signal("hp_changed", current_hp, max_hp)
 	if current_hp <= 0:
@@ -174,3 +213,274 @@ func _physics_process(_delta):
 	
 	velocity = direction * speed
 	move_and_slide()
+
+
+func _bootstrap_existing_weapon_nodes():
+	# Player.tscn may already include the starting weapon. Tag it so C# can find it.
+	for child in get_children():
+		if child == null:
+			continue
+		# Prefer meta tag if already set.
+		if child.has_meta("ability_id"):
+			_weapon_nodes[child.get_meta("ability_id")] = child
+			_register_weapon_base_stats(child)
+			continue
+		# Best-effort mapping by node name (keeps this minimal & backwards compatible).
+		if child.name == "MagicWand":
+			_register_weapon_node(child, "weapon_magic_wand")
+		elif child.name == "HolyAura":
+			_register_weapon_node(child, "weapon_holy_aura")
+		elif child.name == "TargetedStrike":
+			_register_weapon_node(child, "weapon_targeted_strike")
+
+
+func _register_weapon_node(node: Node, ability_id: String):
+	if not node:
+		return
+	node.set_meta("ability_id", ability_id)
+	_weapon_nodes[ability_id] = node
+	_register_weapon_base_stats(node)
+	_apply_owner_modifiers_to_weapon(node)
+
+
+func _register_weapon_base_stats(node: Node):
+	# Store base values so upgrades can be applied deterministically by stack count.
+	if not ("cooldown" in node):
+		return
+	if not node.has_meta("base_damage") and ("damage" in node):
+		node.set_meta("base_damage", float(node.damage))
+	if not node.has_meta("base_cooldown"):
+		node.set_meta("base_cooldown", float(node.cooldown))
+	if "shots_per_fire" in node and not node.has_meta("base_shots_per_fire"):
+		node.set_meta("base_shots_per_fire", int(node.shots_per_fire))
+	if "projectile_scale" in node and not node.has_meta("base_projectile_scale"):
+		node.set_meta("base_projectile_scale", float(node.projectile_scale))
+	if "projectile_pierce" in node and not node.has_meta("base_projectile_pierce"):
+		node.set_meta("base_projectile_pierce", int(node.projectile_pierce))
+	if "projectile_explosion_radius" in node and not node.has_meta("base_projectile_explosion_radius"):
+		node.set_meta("base_projectile_explosion_radius", float(node.projectile_explosion_radius))
+	if "aura_radius" in node and not node.has_meta("base_aura_radius"):
+		node.set_meta("base_aura_radius", float(node.aura_radius))
+	if "tick_interval" in node and not node.has_meta("base_tick_interval"):
+		node.set_meta("base_tick_interval", float(node.tick_interval))
+	if "strike_radius" in node and not node.has_meta("base_strike_radius"):
+		node.set_meta("base_strike_radius", float(node.strike_radius))
+	if "strikes_per_fire" in node and not node.has_meta("base_strikes_per_fire"):
+		node.set_meta("base_strikes_per_fire", int(node.strikes_per_fire))
+
+
+func _apply_owner_modifiers_to_weapon(node: Node):
+	if not node:
+		return
+	if "owner_damage_mult" in node:
+		node.owner_damage_mult = _stat_damage_mult
+	if "owner_cooldown_mult" in node:
+		node.owner_cooldown_mult = _stat_cooldown_mult
+
+
+func _get_weapon_node(ability_id: String) -> Node:
+	if _weapon_nodes.has(ability_id):
+		var n = _weapon_nodes[ability_id]
+		if is_instance_valid(n):
+			return n
+		_weapon_nodes.erase(ability_id)
+	# Fallback: scan children
+	for child in get_children():
+		if child and child.has_meta("ability_id") and str(child.get_meta("ability_id")) == ability_id:
+			_weapon_nodes[ability_id] = child
+			return child
+	return null
+
+
+# Called from C# (LoadoutManager)
+func ensure_weapon_scene(scene_path: String, ability_id: String):
+	var existing = _get_weapon_node(ability_id)
+	if existing:
+		return
+	var ps: PackedScene = load(scene_path)
+	if not ps:
+		return
+	var node = ps.instantiate()
+	add_child(node)
+	_register_weapon_node(node, ability_id)
+
+
+# Called from C# (LoadoutManager)
+func add_weapon_scene(scene_path: String, ability_id: String):
+	# For now, acquire behaves like ensure + attach.
+	ensure_weapon_scene(scene_path, ability_id)
+
+
+# Called from C# (LoadoutManager)
+func apply_weapon_upgrade(ability_id: String, upgrade_id: String, stacks: int):
+	var w = _get_weapon_node(ability_id)
+	if not w:
+		return
+	_register_weapon_base_stats(w)
+
+	# Apply only the changed aspect based on current stack count.
+	match ability_id:
+		"weapon_magic_wand":
+			_apply_magic_wand_upgrade(w, upgrade_id, stacks)
+		"weapon_holy_aura":
+			_apply_holy_aura_upgrade(w, upgrade_id, stacks)
+		"weapon_targeted_strike":
+			_apply_targeted_strike_upgrade(w, upgrade_id, stacks)
+
+
+func _apply_magic_wand_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_cd = float(w.get_meta("base_cooldown"))
+	var base_shots = int(w.get_meta("base_shots_per_fire")) if w.has_meta("base_shots_per_fire") else 1
+	var base_scale = float(w.get_meta("base_projectile_scale")) if w.has_meta("base_projectile_scale") else 1.0
+	var base_pierce = int(w.get_meta("base_projectile_pierce")) if w.has_meta("base_projectile_pierce") else 0
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"cd_down":
+			w.cooldown = max(0.05, base_cd * pow(0.92, stacks))
+		"count_up":
+			w.shots_per_fire = base_shots + stacks
+		"size_up":
+			w.projectile_scale = base_scale * pow(1.08, stacks)
+		"pierce_up":
+			w.projectile_pierce = base_pierce + stacks
+		"explosion":
+			w.projectile_explosion_radius = 70.0 if stacks > 0 else 0.0
+
+
+func _apply_holy_aura_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_radius = float(w.get_meta("base_aura_radius")) if w.has_meta("base_aura_radius") else 90.0
+	var base_tick = float(w.get_meta("base_tick_interval")) if w.has_meta("base_tick_interval") else 0.5
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"radius_up":
+			w.aura_radius = base_radius * pow(1.08, stacks)
+		"tick_up":
+			w.tick_interval = max(0.05, base_tick * pow(0.92, stacks))
+
+
+func _apply_targeted_strike_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_cd = float(w.get_meta("base_cooldown"))
+	var base_radius = float(w.get_meta("base_strike_radius")) if w.has_meta("base_strike_radius") else 80.0
+	var base_count = int(w.get_meta("base_strikes_per_fire")) if w.has_meta("base_strikes_per_fire") else 1
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"cd_down":
+			w.cooldown = max(0.05, base_cd * pow(0.92, stacks))
+		"radius_up":
+			w.strike_radius = base_radius * pow(1.08, stacks)
+		"count_up":
+			w.strikes_per_fire = base_count + stacks
+
+
+# Called from C# (LoadoutManager)
+func set_stat_modifiers(mods: Dictionary):
+	_stat_damage_mult = float(mods.get("damage_mult", 1.0))
+	_stat_cooldown_mult = float(mods.get("cooldown_mult", 1.0))
+	var armor_bonus = float(mods.get("armor_bonus", 0.0))
+	var max_hp_bonus = float(mods.get("max_hp_bonus", 0.0))
+	_regen_per_sec = float(mods.get("regen_per_sec", 0.0))
+	var magnet_mult = float(mods.get("magnet_mult", 1.0))
+
+	# Apply player stats
+	speed = _base_speed
+	armor = _base_armor + armor_bonus
+	var new_max_hp = _base_max_hp + max_hp_bonus
+	if new_max_hp != max_hp:
+		var delta = new_max_hp - max_hp
+		max_hp = new_max_hp
+		current_hp = clamp(current_hp + delta, 0.0, max_hp)
+		emit_signal("hp_changed", current_hp, max_hp)
+
+	pickup_range = _base_pickup_range * magnet_mult
+	if _magnet_shape and _magnet_shape.shape and _magnet_shape.shape is CircleShape2D:
+		_magnet_shape.shape.radius = pickup_range
+
+	# Apply to weapons
+	for ability_id in _weapon_nodes.keys():
+		var w = _weapon_nodes[ability_id]
+		if is_instance_valid(w):
+			_apply_owner_modifiers_to_weapon(w)
+	# Also apply to any stray weapon children (backward compatible)
+	for child in get_children():
+		if child and ("owner_damage_mult" in child or "owner_cooldown_mult" in child):
+			_apply_owner_modifiers_to_weapon(child)
+
+
+# Auto-active abilities (called from C#)
+func do_knockback_pulse(radius: float, power: float):
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var r2 = radius * radius
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		var dist2 = global_position.distance_squared_to(enemy.global_position)
+		if dist2 > r2:
+			continue
+		var dir = (enemy.global_position - global_position).normalized()
+		# Simple push-back. Enemy AI overwrites velocity, so we shift position directly.
+		enemy.global_position += dir * (12.0 * power)
+
+
+func do_nova(radius: float, dmg: float):
+	if not damage_zone_scene:
+		return
+	var zone = damage_zone_scene.instantiate()
+	get_tree().current_scene.add_child(zone)
+	if zone.has_method("spawn"):
+		zone.spawn(global_position, radius, dmg * _stat_damage_mult)
+
+
+func do_phase(duration: float):
+	_is_phased = true
+	_phase_timer = max(0.1, duration)
+
+
+func do_vacuum(radius: float):
+	# Pull loot by forcing it to collect toward player.
+	# (XPGem will home-in once collect() is called)
+	var areas = get_tree().get_nodes_in_group("loot")
+	if areas.size() == 0:
+		return
+	var r2 = radius * radius
+	for a in areas:
+		if not is_instance_valid(a):
+			continue
+		if a.has_method("collect"):
+			var dist2 = global_position.distance_squared_to(a.global_position)
+			if dist2 <= r2:
+				a.collect(self)
+
+
+func do_slow_zone(radius: float, slow_strength: float, duration: float):
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	var r2 = radius * radius
+	for enemy in enemies:
+		if not is_instance_valid(enemy):
+			continue
+		var dist2 = global_position.distance_squared_to(enemy.global_position)
+		if dist2 > r2:
+			continue
+		if "speed" in enemy:
+			if not enemy.has_meta("base_speed"):
+				enemy.set_meta("base_speed", float(enemy.speed))
+			enemy.speed = float(enemy.get_meta("base_speed")) * (1.0 - clamp(slow_strength, 0.0, 0.9))
+
+	var t := Timer.new()
+	t.wait_time = max(0.1, duration)
+	t.one_shot = true
+	add_child(t)
+	t.timeout.connect(func():
+		for enemy in enemies:
+			if is_instance_valid(enemy) and enemy.has_meta("base_speed") and "speed" in enemy:
+				enemy.speed = float(enemy.get_meta("base_speed"))
+	)
+	t.start()
