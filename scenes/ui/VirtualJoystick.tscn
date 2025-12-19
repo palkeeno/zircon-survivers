@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/VirtualJoystick.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
+[ext_resource type="Script" path="res://scripts/ui/JoystickCircle.gd" id="2_circle"]
 
 [node name="VirtualJoystick" type="Control"]
 layout_mode = 3
@@ -30,20 +30,20 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(1, 1, 1, 0.1)
+color = Color(1, 1, 1, 0.0)
 
-[node name="Base" type="TextureRect" parent="."]
-modulate = Color(0.2, 0.2, 0.2, 0.5)
+[node name="Base" type="Control" parent="."]
+modulate = Color(1, 1, 1, 1)
 layout_mode = 0
 offset_left = 64.0
 offset_top = 376.0
 offset_right = 264.0
 offset_bottom = 576.0
-texture = ExtResource("2_icon")
-expand_mode = 1
+script = ExtResource("2_circle")
+fill_color = Color(0, 0, 0, 0.1)
 
-[node name="Tip" type="TextureRect" parent="Base"]
-modulate = Color(0.5, 0.5, 0.5, 0.8)
+[node name="Tip" type="Control" parent="Base"]
+modulate = Color(1, 1, 1, 1)
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -56,5 +56,5 @@ offset_right = 50.0
 offset_bottom = 50.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_icon")
-expand_mode = 1
+script = ExtResource("2_circle")
+fill_color = Color(0, 0, 0, 0.25)

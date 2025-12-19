@@ -30,9 +30,23 @@ signal joystick_updated(output: Vector2)
 func _ready():
 	if visibility_mode == VisibilityMode.TOUCHSCREEN_ONLY and not DisplayServer.is_touchscreen_available():
 		hide()
+
+	_apply_visual_sizes()
 	
 	# Initial state: Base/Tip hidden, Zone visible
 	_hide_joystick()
+
+func _apply_visual_sizes() -> void:
+	if _base == null or _tip == null:
+		return
+
+	# clampzone_size is treated as the movement radius (outer range circle).
+	var range_radius: float = maxf(1.0, clampzone_size)
+	var stick_radius: float = range_radius / 1.3
+
+	_base.size = Vector2.ONE * (range_radius * 2.0)
+	_tip.size = Vector2.ONE * (stick_radius * 2.0)
+	_reset_tip_position()
 
 func _input(event):
 	if event is InputEventScreenTouch:
