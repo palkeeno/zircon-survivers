@@ -29,6 +29,7 @@ public static class AbilityDatabase
             Description = "Nearest enemy targeting shots.",
             SlotKind = AbilitySlotKind.Weapon,
             WeaponScenePath = "res://scenes/weapons/MagicWand.tscn",
+            IconPath = "res://assets/weapons/magic_wand.png",
             Weight = 10,
             Upgrades = new[]
             {
@@ -48,6 +49,7 @@ public static class AbilityDatabase
             Description = "Damages enemies around you.",
             SlotKind = AbilitySlotKind.Weapon,
             WeaponScenePath = "res://scenes/weapons/HolyAura.tscn",
+            IconPath = "res://assets/weapons/holy_aura.png",
             Weight = 10,
             Upgrades = new[]
             {
@@ -64,6 +66,7 @@ public static class AbilityDatabase
             Description = "Creates a damaging zone at a nearby enemy.",
             SlotKind = AbilitySlotKind.Weapon,
             WeaponScenePath = "res://scenes/weapons/TargetedStrike.tscn",
+            IconPath = "res://assets/weapons/targeted_strike.png",
             Weight = 10,
             Upgrades = new[]
             {
@@ -82,6 +85,7 @@ public static class AbilityDatabase
             Description = "Increases all weapon damage.",
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.Passive,
+            IconPath = "res://assets/abilities/might.png",
             Weight = 10,
             Upgrades = new[]
             {
@@ -96,6 +100,7 @@ public static class AbilityDatabase
             Description = "Reduces contact damage.",
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.Passive,
+            IconPath = "res://assets/abilities/armor.png",
             Weight = 10,
             Upgrades = new[]
             {
@@ -110,6 +115,7 @@ public static class AbilityDatabase
             Description = "Increases max HP.",
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.Passive,
+            IconPath = "res://assets/abilities/vitality.png",
             Weight = 10,
             Upgrades = new[]
             {
@@ -124,6 +130,7 @@ public static class AbilityDatabase
             Description = "Regenerates HP over time.",
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.Passive,
+            IconPath = "res://assets/abilities/regeneration.png",
             Weight = 8,
             Upgrades = new[]
             {
@@ -138,6 +145,7 @@ public static class AbilityDatabase
             Description = "All weapons attack faster.",
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.Passive,
+            IconPath = "res://assets/abilities/auto_haste.png",
             Weight = 8,
             Upgrades = new[]
             {
@@ -152,6 +160,7 @@ public static class AbilityDatabase
             Description = "Increases pickup range.",
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.Passive,
+            // Icon not provided
             Weight = 8,
             Upgrades = new[]
             {
@@ -168,6 +177,7 @@ public static class AbilityDatabase
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.AutoActive,
             BaseCooldownSec = 10f,
+            // Icon not provided
             Weight = 8,
             Upgrades = new[]
             {
@@ -185,6 +195,7 @@ public static class AbilityDatabase
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.AutoActive,
             BaseCooldownSec = 14f,
+            IconPath = "res://assets/abilities/nova_burst.png",
             Weight = 8,
             Upgrades = new[]
             {
@@ -202,6 +213,7 @@ public static class AbilityDatabase
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.AutoActive,
             BaseCooldownSec = 24f,
+            IconPath = "res://assets/abilities/phase_cloak.png",
             Weight = 6,
             Upgrades = new[]
             {
@@ -218,6 +230,7 @@ public static class AbilityDatabase
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.AutoActive,
             BaseCooldownSec = 18f,
+            // Icon not provided
             Weight = 6,
             Upgrades = new[]
             {
@@ -234,6 +247,7 @@ public static class AbilityDatabase
             SlotKind = AbilitySlotKind.Special,
             SpecialKind = SpecialAbilityKind.AutoActive,
             BaseCooldownSec = 16f,
+            IconPath = "res://assets/abilities/frozen_zone.png",
             Weight = 6,
             Upgrades = new[]
             {

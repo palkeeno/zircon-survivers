@@ -1,16 +1,10 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="Texture2D" path="res://icon.svg" id="1_tex"]
+[ext_resource type="Texture2D" path="res://assets/map/map_1.png" id="1_tile"]
+[ext_resource type="Texture2D" path="res://assets/map/map_2.png" id="2_tile"]
+[ext_resource type="Script" path="res://scripts/core/MapGenerator.gd" id="3_gen"]
 
-[node name="Background" type="ParallaxBackground"]
-
-[node name="ParallaxLayer" type="ParallaxLayer" parent="."]
-motion_mirroring = Vector2(1024, 1024)
-
-[node name="Sprite2D" type="Sprite2D" parent="ParallaxLayer"]
-modulate = Color(0.13, 0.13, 0.13, 1)
-texture_repeat = 2
-texture = ExtResource("1_tex")
-centered = false
-region_enabled = true
-region_rect = Rect2(0, 0, 1024, 1024)
+[node name="Background" type="Node2D"]
+script = ExtResource("3_gen")
+tile_1_texture = ExtResource("1_tile")
+tile_2_texture = ExtResource("2_tile")

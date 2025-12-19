@@ -55,6 +55,7 @@ public partial class LoadoutManager : Node
                 ["id"] = w.Def.Id,
                 ["name"] = w.Def.Name,
                 ["level"] = w.Level,
+                ["icon_path"] = w.Def.IconPath ?? "",
             });
         }
 
@@ -67,6 +68,7 @@ public partial class LoadoutManager : Node
                 ["name"] = s.Def.Name,
                 ["level"] = s.Level,
                 ["special_kind"] = s.Def.SpecialKind?.ToString() ?? "Passive",
+                ["icon_path"] = s.Def.IconPath ?? "",
             });
         }
 
@@ -102,6 +104,7 @@ public partial class LoadoutManager : Node
                 ["desc"] = isUpgrade ? $"Upgrade (random): {def.Description}" : def.Description,
                 ["is_upgrade"] = isUpgrade,
                 ["special_kind"] = def.SpecialKind?.ToString() ?? "",
+                ["icon_path"] = def.IconPath ?? "",
             });
         }
 

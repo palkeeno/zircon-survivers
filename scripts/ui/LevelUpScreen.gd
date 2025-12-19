@@ -30,8 +30,46 @@ func _generate_choices():
 	
 	for offer in offers:
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(0, 60)
-		btn.text = str(offer.get("name", "")) + "\n" + str(offer.get("desc", ""))
+		btn.custom_minimum_size = Vector2(0, 80)
+		
+		# Build content: [icon 32x32] [name + desc]
+		var hbox := HBoxContainer.new()
+		hbox.add_theme_constant_override("separation", 8)
+		
+		# Only add icon if one is available
+		var icon_path := str(offer.get("icon_path", ""))
+		if icon_path != "":
+			var texrect := TextureRect.new()
+			texrect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			texrect.custom_minimum_size = Vector2(40, 40)
+			texrect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			texrect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			texrect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			var tex: Texture2D = load(icon_path)
+			if tex:
+				texrect.texture = tex
+			hbox.add_child(texrect)
+		
+		# Text content (name + description)
+		var vbox := VBoxContainer.new()
+		vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		vbox.custom_minimum_size = Vector2(300, 0)
+		
+		var name_label := Label.new()
+		name_label.text = str(offer.get("name", ""))
+		name_label.custom_minimum_size = Vector2(300, 0)
+		
+		var desc_label := Label.new()
+		desc_label.text = str(offer.get("desc", ""))
+		desc_label.autowrap_mode = TextServer.AutowrapMode.AUTOWRAP_WORD
+		desc_label.custom_minimum_size = Vector2(300, 0)
+		
+		vbox.add_child(name_label)
+		vbox.add_child(desc_label)
+		hbox.add_child(vbox)
+		
+		btn.add_child(hbox)
+
 		var offer_id = str(offer.get("offer_id", ""))
 		btn.pressed.connect(func(): _apply_offer(offer_id))
 		buttons_container.add_child(btn)

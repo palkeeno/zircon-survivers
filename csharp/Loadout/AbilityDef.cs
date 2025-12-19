@@ -19,6 +19,9 @@ public sealed class AbilityDef
 
     public float BaseCooldownSec { get; init; } = 0f;
 
+    /// <summary>Optional icon image path (res://...). If null, UI shows text only.</summary>
+    public string? IconPath { get; init; }
+
     /// <summary>Relative weight for random offer selection.</summary>
     public int Weight { get; init; } = 10;
 

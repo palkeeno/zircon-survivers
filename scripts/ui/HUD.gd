@@ -5,6 +5,8 @@ extends CanvasLayer
 @onready var xp_bar = $Control/MarginContainer/VBoxContainer/XPBar
 @onready var level_label = $Control/MarginContainer/VBoxContainer/XPBar/LevelLabel
 @onready var loadout_label = $Control/MarginContainer/VBoxContainer/LoadoutLabel
+@onready var weapons_icons = $Control/MarginContainer/VBoxContainer/WeaponsIcons
+@onready var specials_icons = $Control/MarginContainer/VBoxContainer/SpecialsIcons
 
 var _loadout_manager: Node = null
 
@@ -51,6 +53,20 @@ func _connect_player(player):
 	_on_xp_changed(player.experience, player.next_level_xp)
 	_on_level_up(player.level)
 
+	# Constrain icon slots sizing to avoid oversized textures
+	for node in weapons_icons.get_children():
+		if node is TextureRect:
+			node.custom_minimum_size = Vector2(24, 24)
+			node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			node.size_flags_horizontal = 0
+			node.size_flags_vertical = 0
+	for node in specials_icons.get_children():
+		if node is TextureRect:
+			node.custom_minimum_size = Vector2(24, 24)
+			node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			node.size_flags_horizontal = 0
+			node.size_flags_vertical = 0
+
 func _on_hp_changed(current, max_val):
 	hp_bar.max_value = max_val
 	hp_bar.value = current
@@ -88,3 +104,48 @@ func _on_loadout_changed():
 		s_slots[i] = "%s Lv%d" % [str(s.get("name", "")), int(s.get("level", 1))]
 
 	loadout_label.text = "W: %s\nS: %s" % [" | ".join(w_slots), " | ".join(s_slots)]
+
+	# マップタイル相当のサイズ（必要ならここだけ調整）
+	var icon_size := Vector2(16, 16)
+
+	# Set weapon icons
+	for i in range(4):
+		var texrect_w := weapons_icons.get_child(i)
+		if texrect_w is TextureRect:
+			texrect_w.custom_minimum_size = icon_size
+			texrect_w.size = icon_size
+			texrect_w.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			texrect_w.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			texrect_w.size_flags_horizontal = 0
+			texrect_w.size_flags_vertical = 0
+
+		if i < weapons.size():
+			var w = weapons[i]
+			var icon_path_w = str(w.get("icon_path", ""))
+			if icon_path_w != "":
+				var tex_w: Texture2D = load(icon_path_w)
+				if tex_w:
+					texrect_w.texture = tex_w
+					continue
+		texrect_w.texture = null
+
+	# Set special icons
+	for i in range(4):
+		var texrect_s := specials_icons.get_child(i)
+		if texrect_s is TextureRect:
+			texrect_s.custom_minimum_size = icon_size
+			texrect_s.size = icon_size
+			texrect_s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			texrect_s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			texrect_s.size_flags_horizontal = 0
+			texrect_s.size_flags_vertical = 0
+
+		if i < specials.size():
+			var s = specials[i]
+			var icon_path_s = str(s.get("icon_path", ""))
+			if icon_path_s != "":
+				var tex_s: Texture2D = load(icon_path_s)
+				if tex_s:
+					texrect_s.texture = tex_s
+					continue
+		texrect_s.texture = null

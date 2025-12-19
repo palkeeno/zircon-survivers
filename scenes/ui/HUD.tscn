@@ -28,6 +28,46 @@ theme_override_constants/margin_right = 20
 layout_mode = 2
 theme_override_constants/separation = 10
 
+[node name="WeaponsIcons" type="HBoxContainer" parent="Control/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="WIcon1" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/WeaponsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
+[node name="WIcon2" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/WeaponsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
+[node name="WIcon3" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/WeaponsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
+[node name="WIcon4" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/WeaponsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
+[node name="SpecialsIcons" type="HBoxContainer" parent="Control/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SIcon1" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/SpecialsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
+[node name="SIcon2" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/SpecialsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
+[node name="SIcon3" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/SpecialsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
+[node name="SIcon4" type="TextureRect" parent="Control/MarginContainer/VBoxContainer/SpecialsIcons"]
+custom_minimum_size = Vector2(24, 24)
+stretch_mode = 4
+
 [node name="XPBar" type="TextureProgressBar" parent="Control/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
