@@ -1,7 +1,42 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xp_bg"]
+bg_color = Color(0.2, 0.2, 0.2, 1)
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xp_fill"]
+bg_color = Color(0.2, 0.6, 1, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_bg"]
+bg_color = Color(0.3, 0.1, 0.1, 1)
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp_fill"]
+bg_color = Color(0.9, 0.2, 0.2, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -68,18 +103,12 @@ stretch_mode = 4
 custom_minimum_size = Vector2(24, 24)
 stretch_mode = 4
 
-[node name="XPBar" type="TextureProgressBar" parent="Control/MarginContainer/VBoxContainer"]
+[node name="XPBar" type="ProgressBar" parent="Control/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
-nine_patch_stretch = true
-stretch_margin_left = 4
-stretch_margin_top = 4
-stretch_margin_right = 4
-stretch_margin_bottom = 4
-texture_under = ExtResource("2_icon")
-texture_progress = ExtResource("2_icon")
-tint_under = Color(0.2, 0.2, 0.2, 1)
-tint_progress = Color(0.2, 0.6, 1, 1)
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_xp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_xp_fill")
 
 [node name="LevelLabel" type="Label" parent="Control/MarginContainer/VBoxContainer/XPBar"]
 layout_mode = 1
@@ -103,19 +132,13 @@ text = "W: - - - -\nS: - - - -"
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HPBar" type="TextureProgressBar" parent="Control/MarginContainer/VBoxContainer/TopRow/HPContainer"]
+[node name="HPBar" type="ProgressBar" parent="Control/MarginContainer/VBoxContainer/TopRow/HPContainer"]
 custom_minimum_size = Vector2(200, 20)
 layout_mode = 2
 value = 100.0
-nine_patch_stretch = true
-stretch_margin_left = 4
-stretch_margin_top = 4
-stretch_margin_right = 4
-stretch_margin_bottom = 4
-texture_under = ExtResource("2_icon")
-texture_progress = ExtResource("2_icon")
-tint_under = Color(0.3, 0.1, 0.1, 1)
-tint_progress = Color(0.9, 0.2, 0.2, 1)
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_hp_bg")
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp_fill")
 
 [node name="HPLabel" type="Label" parent="Control/MarginContainer/VBoxContainer/TopRow/HPContainer"]
 layout_mode = 2
