@@ -19,7 +19,8 @@ func _ready():
 func spawn(pos: Vector2, direction: Vector2):
 	global_position = pos
 	_direction = direction.normalized()
-	rotation = _direction.angle()
+	# Godot's angle() assumes +X (right) as 0 radians; our projectile art faces up.
+	rotation = _direction.angle() + PI * 0.5
 	_life_timer = life_time
 	_is_active = true
 

@@ -40,6 +40,8 @@ signal player_died
 # Use loose typing 'Node' or 'Control' to avoid compile error if VirtualJoystick class isn't registered yet
 var _joystick : Control
 
+var _aim_dir: Vector2 = Vector2.RIGHT
+
 func _ready():
 	_base_speed = speed
 	_base_max_hp = max_hp
@@ -162,6 +164,15 @@ func take_damage(amount: float):
 	if current_hp <= 0:
 		die()
 
+
+func heal(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	if current_hp <= 0.0:
+		return
+	current_hp = clamp(current_hp + amount, 0.0, max_hp)
+	emit_signal("hp_changed", current_hp, max_hp)
+
 func die():
 	print("Player Died")
 	emit_signal("player_died")
@@ -211,8 +222,15 @@ func _physics_process(_delta):
 	if not _joystick:
 		print("Warning: Joystick node not found by Player")
 	
+	if direction != Vector2.ZERO:
+		_aim_dir = direction.normalized()
+
 	velocity = direction * speed
 	move_and_slide()
+
+
+func get_aim_direction() -> Vector2:
+	return _aim_dir
 
 
 func _bootstrap_existing_weapon_nodes():
@@ -267,6 +285,54 @@ func _register_weapon_base_stats(node: Node):
 		node.set_meta("base_strike_radius", float(node.strike_radius))
 	if "strikes_per_fire" in node and not node.has_meta("base_strikes_per_fire"):
 		node.set_meta("base_strikes_per_fire", int(node.strikes_per_fire))
+	if "nova_radius" in node and not node.has_meta("base_nova_radius"):
+		node.set_meta("base_nova_radius", float(node.nova_radius))
+	if "bursts_per_fire" in node and not node.has_meta("base_bursts_per_fire"):
+		node.set_meta("base_bursts_per_fire", int(node.bursts_per_fire))
+	if "start_range" in node and not node.has_meta("base_start_range"):
+		node.set_meta("base_start_range", float(node.start_range))
+	if "chain_range" in node and not node.has_meta("base_chain_range"):
+		node.set_meta("base_chain_range", float(node.chain_range))
+	if "max_jumps" in node and not node.has_meta("base_max_jumps"):
+		node.set_meta("base_max_jumps", int(node.max_jumps))
+	if "forks" in node and not node.has_meta("base_forks"):
+		node.set_meta("base_forks", int(node.forks))
+	if "boomerang_count" in node and not node.has_meta("base_boomerang_count"):
+		node.set_meta("base_boomerang_count", int(node.boomerang_count))
+	if "semi_major" in node and not node.has_meta("base_semi_major"):
+		node.set_meta("base_semi_major", float(node.semi_major))
+	if "eccentricity" in node and not node.has_meta("base_eccentricity"):
+		node.set_meta("base_eccentricity", float(node.eccentricity))
+	if "orbit_rotation_speed" in node and not node.has_meta("base_orbit_rotation_speed"):
+		node.set_meta("base_orbit_rotation_speed", float(node.orbit_rotation_speed))
+	if "angular_speed" in node and not node.has_meta("base_angular_speed"):
+		node.set_meta("base_angular_speed", float(node.angular_speed))
+	if "tick_interval" in node and not node.has_meta("base_tick_interval"):
+		node.set_meta("base_tick_interval", float(node.tick_interval))
+	if "fallback_beam_length" in node and not node.has_meta("base_fallback_beam_length"):
+		node.set_meta("base_fallback_beam_length", float(node.fallback_beam_length))
+	if "beam_width" in node and not node.has_meta("base_beam_width"):
+		node.set_meta("base_beam_width", float(node.beam_width))
+	if "beams_per_fire" in node and not node.has_meta("base_beams_per_fire"):
+		node.set_meta("base_beams_per_fire", int(node.beams_per_fire))
+	if "max_bounces" in node and not node.has_meta("base_max_bounces"):
+		node.set_meta("base_max_bounces", int(node.max_bounces))
+	if "throw_distance" in node and not node.has_meta("base_throw_distance"):
+		node.set_meta("base_throw_distance", float(node.throw_distance))
+	if "burn_radius" in node and not node.has_meta("base_burn_radius"):
+		node.set_meta("base_burn_radius", float(node.burn_radius))
+	if "burn_duration" in node and not node.has_meta("base_burn_duration"):
+		node.set_meta("base_burn_duration", float(node.burn_duration))
+	if "burn_tick_interval" in node and not node.has_meta("base_burn_tick_interval"):
+		node.set_meta("base_burn_tick_interval", float(node.burn_tick_interval))
+	if "bottles_per_fire" in node and not node.has_meta("base_bottles_per_fire"):
+		node.set_meta("base_bottles_per_fire", int(node.bottles_per_fire))
+	if "claw_radius" in node and not node.has_meta("base_claw_radius"):
+		node.set_meta("base_claw_radius", float(node.claw_radius))
+	if "reach" in node and not node.has_meta("base_reach"):
+		node.set_meta("base_reach", float(node.reach))
+	if "slashes_per_fire" in node and not node.has_meta("base_slashes_per_fire"):
+		node.set_meta("base_slashes_per_fire", int(node.slashes_per_fire))
 
 
 func _apply_owner_modifiers_to_weapon(node: Node):
@@ -326,6 +392,18 @@ func apply_weapon_upgrade(ability_id: String, upgrade_id: String, stacks: int):
 			_apply_holy_aura_upgrade(w, upgrade_id, stacks)
 		"weapon_targeted_strike":
 			_apply_targeted_strike_upgrade(w, upgrade_id, stacks)
+		"weapon_nova_burst":
+			_apply_nova_burst_upgrade(w, upgrade_id, stacks)
+		"weapon_shockwave":
+			_apply_shockwave_upgrade(w, upgrade_id, stacks)
+		"weapon_orbit_boomerang":
+			_apply_orbit_boomerang_upgrade(w, upgrade_id, stacks)
+		"weapon_piercing_beam":
+			_apply_piercing_beam_upgrade(w, upgrade_id, stacks)
+		"weapon_fire_bottle":
+			_apply_fire_bottle_upgrade(w, upgrade_id, stacks)
+		"weapon_twin_claw":
+			_apply_twin_claw_upgrade(w, upgrade_id, stacks)
 
 
 func _apply_magic_wand_upgrade(w: Node, upgrade_id: String, stacks: int):
@@ -351,17 +429,13 @@ func _apply_magic_wand_upgrade(w: Node, upgrade_id: String, stacks: int):
 
 
 func _apply_holy_aura_upgrade(w: Node, upgrade_id: String, stacks: int):
-	var base_damage = float(w.get_meta("base_damage"))
 	var base_radius = float(w.get_meta("base_aura_radius")) if w.has_meta("base_aura_radius") else 90.0
-	var base_tick = float(w.get_meta("base_tick_interval")) if w.has_meta("base_tick_interval") else 0.5
 
 	match upgrade_id:
-		"dmg_up":
-			w.damage = base_damage * pow(1.1, stacks)
 		"radius_up":
 			w.aura_radius = base_radius * pow(1.08, stacks)
-		"tick_up":
-			w.tick_interval = max(0.05, base_tick * pow(0.92, stacks))
+		_:
+			pass
 
 
 func _apply_targeted_strike_upgrade(w: Node, upgrade_id: String, stacks: int):
@@ -379,6 +453,123 @@ func _apply_targeted_strike_upgrade(w: Node, upgrade_id: String, stacks: int):
 			w.strike_radius = base_radius * pow(1.08, stacks)
 		"count_up":
 			w.strikes_per_fire = base_count + stacks
+
+
+func _apply_nova_burst_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_cd = float(w.get_meta("base_cooldown"))
+	var base_radius = float(w.get_meta("base_nova_radius")) if w.has_meta("base_nova_radius") else 140.0
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.13, stacks)
+		"cd_down":
+			w.cooldown = max(0.25, base_cd * pow(0.92, stacks))
+		"radius_up":
+			w.nova_radius = base_radius * pow(1.08, stacks)
+
+
+func _apply_shockwave_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_cd = float(w.get_meta("base_cooldown"))
+	var base_start = float(w.get_meta("base_start_range")) if w.has_meta("base_start_range") else 280.0
+	var base_chain = float(w.get_meta("base_chain_range")) if w.has_meta("base_chain_range") else 200.0
+	var base_jumps = int(w.get_meta("base_max_jumps")) if w.has_meta("base_max_jumps") else 4
+	var base_forks = int(w.get_meta("base_forks")) if w.has_meta("base_forks") else 0
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"cd_down":
+			w.cooldown = max(0.05, base_cd * pow(0.92, stacks))
+		"range_up":
+			w.start_range = base_start * pow(1.08, stacks)
+			w.chain_range = base_chain * pow(1.08, stacks)
+		"jumps_up":
+			w.max_jumps = base_jumps + stacks
+		"fork":
+			w.forks = clampi(base_forks + stacks, 0, 2)
+
+
+func _apply_orbit_boomerang_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_count = int(w.get_meta("base_boomerang_count")) if w.has_meta("base_boomerang_count") else 1
+	var base_a = float(w.get_meta("base_semi_major")) if w.has_meta("base_semi_major") else 160.0
+	var base_rot = float(w.get_meta("base_orbit_rotation_speed")) if w.has_meta("base_orbit_rotation_speed") else 1.2
+	var base_speed = float(w.get_meta("base_angular_speed")) if w.has_meta("base_angular_speed") else 3.0
+	var base_tick = float(w.get_meta("base_tick_interval")) if w.has_meta("base_tick_interval") else 0.25
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"count_up":
+			w.boomerang_count = base_count + stacks
+		"radius_up":
+			w.semi_major = base_a * pow(1.08, stacks)
+		"speed_up":
+			w.angular_speed = base_speed * pow(1.10, stacks)
+			w.orbit_rotation_speed = base_rot * pow(1.08, stacks)
+		"tick_up":
+			w.tick_interval = max(0.05, base_tick * pow(0.90, stacks))
+
+
+func _apply_piercing_beam_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_cd = float(w.get_meta("base_cooldown"))
+	var base_w = float(w.get_meta("base_beam_width")) if w.has_meta("base_beam_width") else 26.0
+	var base_cnt = int(w.get_meta("base_beams_per_fire")) if w.has_meta("base_beams_per_fire") else 1
+	var base_bounces = int(w.get_meta("base_max_bounces")) if w.has_meta("base_max_bounces") else 0
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"cd_down":
+			w.cooldown = max(0.05, base_cd * pow(0.92, stacks))
+		"width_up":
+			w.beam_width = base_w * pow(1.08, stacks)
+		"bounce_up":
+			w.max_bounces = base_bounces + stacks
+		"count_up":
+			w.beams_per_fire = base_cnt + stacks
+
+
+func _apply_fire_bottle_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_cd = float(w.get_meta("base_cooldown"))
+	var base_radius = float(w.get_meta("base_burn_radius")) if w.has_meta("base_burn_radius") else 90.0
+	var base_dur = float(w.get_meta("base_burn_duration")) if w.has_meta("base_burn_duration") else 2.8
+	var base_tick = float(w.get_meta("base_burn_tick_interval")) if w.has_meta("base_burn_tick_interval") else 0.35
+	var base_cnt = int(w.get_meta("base_bottles_per_fire")) if w.has_meta("base_bottles_per_fire") else 1
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"cd_down":
+			w.cooldown = max(0.05, base_cd * pow(0.92, stacks))
+		"radius_up":
+			w.burn_radius = base_radius * pow(1.08, stacks)
+		"duration_up":
+			w.burn_duration = base_dur * pow(1.10, stacks)
+		"tick_up":
+			w.burn_tick_interval = max(0.05, base_tick * pow(0.90, stacks))
+		"count_up":
+			w.bottles_per_fire = base_cnt + stacks
+
+
+func _apply_twin_claw_upgrade(w: Node, upgrade_id: String, stacks: int):
+	var base_damage = float(w.get_meta("base_damage"))
+	var base_cd = float(w.get_meta("base_cooldown"))
+	var base_radius = float(w.get_meta("base_claw_radius")) if w.has_meta("base_claw_radius") else 70.0
+	var base_cnt = int(w.get_meta("base_slashes_per_fire")) if w.has_meta("base_slashes_per_fire") else 1
+
+	match upgrade_id:
+		"dmg_up":
+			w.damage = base_damage * pow(1.1, stacks)
+		"cd_down":
+			w.cooldown = max(0.05, base_cd * pow(0.92, stacks))
+		"radius_up":
+			w.claw_radius = base_radius * pow(1.08, stacks)
+		"count_up":
+			w.slashes_per_fire = base_cnt + stacks
 
 
 # Called from C# (LoadoutManager)

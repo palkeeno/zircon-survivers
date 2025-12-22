@@ -53,9 +53,7 @@ public static class AbilityDatabase
             Weight = 10,
             Upgrades = new[]
             {
-                U("dmg_up", "Damage Up", "Aura damage increases.", 10),
                 U("radius_up", "Bigger Aura", "Aura radius increases.", 8),
-                U("tick_up", "Faster Ticks", "Aura hits more frequently.", 8),
             }
         };
 
@@ -73,7 +71,119 @@ public static class AbilityDatabase
                 U("dmg_up", "Damage Up", "Strike damage increases.", 10),
                 U("cd_down", "Haste", "Strikes more frequently.", 10),
                 U("radius_up", "Bigger Strike", "Strike radius increases.", 8),
-                U("count_up", "Extra Strike", "Creates +1 zone.", 5),
+                U("count_up", "Extra Target", "Targets +1 additional enemy.", 5),
+            }
+        };
+
+        defs["weapon_nova_burst"] = new AbilityDef
+        {
+            Id = "weapon_nova_burst",
+            Name = "Nova Burst",
+            Description = "Detonates a huge blast around you at long intervals.",
+            SlotKind = AbilitySlotKind.Weapon,
+            WeaponScenePath = "res://scenes/weapons/NovaBurst.tscn",
+            IconPath = "res://assets/weapons/nova_burst.png",
+            Weight = 8,
+            Upgrades = new[]
+            {
+                U("dmg_up", "Stronger Nova", "Explosion damage increases.", 10),
+                U("radius_up", "Bigger Nova", "Explosion radius increases.", 8),
+                U("cd_down", "Faster Nova", "Triggers more often.", 10),
+            }
+        };
+
+        defs["weapon_shockwave"] = new AbilityDef
+        {
+            Id = "weapon_shockwave",
+            Name = "Shockwave",
+            Description = "Chain lightning jumps between nearby enemies.",
+            SlotKind = AbilitySlotKind.Weapon,
+            WeaponScenePath = "res://scenes/weapons/Shockwave.tscn",
+            IconPath = "res://assets/weapons/shockwave.png",
+            Weight = 8,
+            Upgrades = new[]
+            {
+                U("dmg_up", "More Voltage", "Lightning damage increases.", 10),
+                U("cd_down", "Faster Sparks", "Triggers more often.", 10),
+                U("range_up", "Longer Chain", "Chain range increases.", 8),
+                U("jumps_up", "Extra Jumps", "Hits +1 additional enemy.", 6),
+                U("fork", "Fork", "Adds an extra chain.", 3),
+            }
+        };
+
+        defs["weapon_orbit_boomerang"] = new AbilityDef
+        {
+            Id = "weapon_orbit_boomerang",
+            Name = "Comet Boomerang",
+            Description = "Boomerangs orbit around you on a comet-like path. More boomerangs also add new angled orbits.",
+            SlotKind = AbilitySlotKind.Weapon,
+            WeaponScenePath = "res://scenes/weapons/OrbitBoomerang.tscn",
+            IconPath = "res://assets/weapons/orbit_boomerang.png",
+            Weight = 8,
+            Upgrades = new[]
+            {
+                U("dmg_up", "Sharper Edge", "Orbit hit damage increases.", 10),
+                U("count_up", "More Boomerangs", "Adds +1 orbiting boomerang (may create a new orbit).", 7),
+                U("radius_up", "Wider Orbit", "Orbit size increases.", 8),
+                U("speed_up", "Faster Orbit", "Orbit speed increases.", 8),
+                U("tick_up", "More Hits", "Hits more frequently.", 7),
+            }
+        };
+
+        defs["weapon_piercing_beam"] = new AbilityDef
+        {
+            Id = "weapon_piercing_beam",
+            Name = "Piercing Beam",
+            Description = "Fires a beam towards the nearest enemy, reaching the screen edge.",
+            SlotKind = AbilitySlotKind.Weapon,
+            WeaponScenePath = "res://scenes/weapons/PiercingBeam.tscn",
+            IconPath = "res://assets/weapons/piercing_beam.png",
+            Weight = 8,
+            Upgrades = new[]
+            {
+                U("dmg_up", "More Power", "Beam damage increases.", 10),
+                U("cd_down", "Faster Beam", "Fires more often.", 10),
+                U("width_up", "Wider Beam", "Beam width increases.", 7),
+                U("bounce_up", "Ricochet", "Beam bounces +1 time off walls.", 6),
+                U("count_up", "Extra Beam", "Fires +1 beam.", 5),
+            }
+        };
+
+        defs["weapon_fire_bottle"] = new AbilityDef
+        {
+            Id = "weapon_fire_bottle",
+            Name = "Fire Bottle",
+            Description = "Throws a bottle that leaves a burning area.",
+            SlotKind = AbilitySlotKind.Weapon,
+            WeaponScenePath = "res://scenes/weapons/FireBottle.tscn",
+            IconPath = "res://assets/weapons/fire_bottle.png",
+            Weight = 8,
+            Upgrades = new[]
+            {
+                U("dmg_up", "Hotter Flames", "Burn damage increases.", 10),
+                U("cd_down", "Faster Throws", "Throws more often.", 10),
+                U("radius_up", "Bigger Fire", "Burning area radius increases.", 8),
+                U("duration_up", "Longer Burn", "Burning lasts longer.", 7),
+                U("tick_up", "Faster Burn", "Burn hits more frequently.", 7),
+                U("count_up", "Extra Bottle", "Throws +1 bottle.", 5),
+            }
+        };
+
+        defs["weapon_twin_claw"] = new AbilityDef
+        {
+            Id = "weapon_twin_claw",
+            Name = "Twin Claw",
+            Description = "Slashes forward and backward at the same time.",
+            SlotKind = AbilitySlotKind.Weapon,
+            WeaponScenePath = "res://scenes/weapons/TwinClaw.tscn",
+            IconPath = "res://assets/weapons/twin_claw.png",
+            Weight = 8,
+            Upgrades = new[]
+            {
+                U("dmg_up", "Stronger Claws", "Slash damage increases.", 10),
+                U("cd_down", "Faster Slashes", "Slashes more often.", 10),
+                U("radius_up", "Wider Slash", "Slash size increases.", 8),
+                U("count_up", "Extra Slash", "Adds +1 slash per trigger.", 5),
             }
         };
 
@@ -169,41 +279,6 @@ public static class AbilityDatabase
         };
 
         // Specials (AutoActive)
-        defs["auto_knockback_pulse"] = new AbilityDef
-        {
-            Id = "auto_knockback_pulse",
-            Name = "Shockwave",
-            Description = "Periodically knocks back nearby enemies.",
-            SlotKind = AbilitySlotKind.Special,
-            SpecialKind = SpecialAbilityKind.AutoActive,
-            BaseCooldownSec = 10f,
-            // Icon not provided
-            Weight = 8,
-            Upgrades = new[]
-            {
-                U("radius_up", "Wider Shockwave", "Shockwave radius increases.", 6),
-                U("power_up", "Stronger Shockwave", "Knockback power increases.", 8),
-                U("cd_down", "Faster Shockwave", "Triggers more often.", 8),
-            }
-        };
-
-        defs["auto_nova"] = new AbilityDef
-        {
-            Id = "auto_nova",
-            Name = "Nova Burst",
-            Description = "Periodically explodes around you.",
-            SlotKind = AbilitySlotKind.Special,
-            SpecialKind = SpecialAbilityKind.AutoActive,
-            BaseCooldownSec = 14f,
-            IconPath = "res://assets/abilities/nova_burst.png",
-            Weight = 8,
-            Upgrades = new[]
-            {
-                U("radius_up", "Bigger Nova", "Explosion radius increases.", 6),
-                U("dmg_up", "Stronger Nova", "Explosion damage increases.", 10),
-                U("cd_down", "Faster Nova", "Triggers more often.", 8),
-            }
-        };
 
         defs["auto_phase"] = new AbilityDef
         {

@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/BurningZone.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/weapons/DamageZoneVFX.gd" id="2_vfx_script"]
+
+[node name="BurningZone" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="ZoneVFX" type="Node2D" parent="."]
+script = ExtResource("2_vfx_script")
+color = Color(1, 0.55, 0.2, 0.55)
+fill_alpha = 0.22
+rim_width = 3.0

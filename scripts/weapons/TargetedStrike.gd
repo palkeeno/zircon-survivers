@@ -5,21 +5,23 @@ class_name TargetedStrike
 @export var strike_radius: float = 80.0
 @export var strikes_per_fire: int = 1
 
-var _nearest_enemy: Node2D = null
-
 func _try_shoot() -> bool:
-	_find_nearest_enemy()
-	if not _nearest_enemy or not is_instance_valid(_nearest_enemy):
-		return false
 	if not zone_scene:
 		return false
 
-	var count = max(1, strikes_per_fire)
+	var count: int = maxi(1, strikes_per_fire)
+	var targets := _find_nearest_enemies(count)
+	if targets.is_empty():
+		return false
+
 	for i in range(count):
-		var pos = _nearest_enemy.global_position
+		var t: Node2D = targets[i % targets.size()]
+		if not is_instance_valid(t):
+			continue
+		var pos: Vector2 = t.global_position
 		if count > 1:
-			# Random offset around target
-			pos += Vector2(randf_range(-20, 20), randf_range(-20, 20))
+			# Small random offset around each target so multi-strikes feel punchy.
+			pos += Vector2(randf_range(-22, 22), randf_range(-22, 22))
 		var zone = zone_scene.instantiate()
 		get_tree().current_scene.add_child(zone)
 		if zone.has_method("spawn"):
@@ -28,22 +30,30 @@ func _try_shoot() -> bool:
 			zone.global_position = pos
 	return true
 
-func _find_nearest_enemy():
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	if enemies.size() == 0:
-		_nearest_enemy = null
-		return
+func _find_nearest_enemies(count: int) -> Array[Node2D]:
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	if enemies.is_empty():
+		return []
 
-	var min_dist_sq = INF
-	var nearest = null
-	var my_pos = global_position
-
-	for enemy in enemies:
-		if not is_instance_valid(enemy):
+	var my_pos: Vector2 = global_position
+	var scored: Array = []
+	for e in enemies:
+		if not is_instance_valid(e):
 			continue
-		var dist_sq = my_pos.distance_squared_to(enemy.global_position)
-		if dist_sq < min_dist_sq:
-			min_dist_sq = dist_sq
-			nearest = enemy
+		if not (e is Node2D):
+			continue
+		var n := e as Node2D
+		scored.append({"n": n, "d2": my_pos.distance_squared_to(n.global_position)})
 
-	_nearest_enemy = nearest
+	if scored.is_empty():
+		return []
+
+	scored.sort_custom(func(a, b):
+		return a["d2"] < b["d2"]
+	)
+
+	var out: Array[Node2D] = []
+	var take: int = mini(maxi(1, count), scored.size())
+	for i in range(take):
+		out.append(scored[i]["n"])
+	return out

@@ -379,12 +379,6 @@ public partial class LoadoutManager : Node
 
         switch (inst.Def.Id)
         {
-            case "auto_knockback_pulse":
-                _player.CallDeferred("do_knockback_pulse", radius, power);
-                break;
-            case "auto_nova":
-                _player.CallDeferred("do_nova", radius, damage);
-                break;
             case "auto_phase":
                 _player.CallDeferred("do_phase", duration);
                 break;

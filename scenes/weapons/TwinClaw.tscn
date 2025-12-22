@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/TwinClaw.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/DamageZone.tscn" id="2_zone"]
+
+[node name="TwinClaw" type="Node2D"]
+script = ExtResource("1_script")
+zone_scene = ExtResource("2_zone")
+cooldown = 1.1
+damage = 16.0
+claw_radius = 70.0
+reach = 95.0
+slashes_per_fire = 1

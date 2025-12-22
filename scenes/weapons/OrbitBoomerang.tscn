@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/OrbitBoomerang.gd" id="1_script"]
+
+[node name="OrbitBoomerang" type="Node2D"]
+script = ExtResource("1_script")
+damage = 5.0
+boomerang_count = 1
+semi_major = 160.0
+eccentricity = 0.65
+angular_speed = 3.0
+orbit_rotation_speed = 1.2
+boomerangs_per_orbit = 1
+orbit_layer_angle_step_degrees = 25.0
+hit_radius = 28.0
+tick_interval = 0.25

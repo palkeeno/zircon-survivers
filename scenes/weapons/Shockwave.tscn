@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/Shockwave.gd" id="1_script"]
+
+[node name="Shockwave" type="Node2D"]
+script = ExtResource("1_script")
+cooldown = 2.8
+damage = 14.0
+start_range = 300.0
+chain_range = 220.0
+max_jumps = 4

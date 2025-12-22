@@ -5,12 +5,17 @@ class_name DamageZone
 @export var damage: float = 10.0
 @export var life_time: float = 0.15
 
+var _instigator: Node = null
+var _lifesteal_ratio: float = 0.0
+
 @onready var _vfx: Node = get_node_or_null("ZoneVFX")
 
-func spawn(pos: Vector2, r: float, dmg: float):
+func spawn(pos: Vector2, r: float, dmg: float, instigator: Node = null, lifesteal_ratio: float = 0.0):
 	global_position = pos
 	radius = r
 	damage = dmg
+	_instigator = instigator
+	_lifesteal_ratio = maxf(0.0, lifesteal_ratio)
 	if _vfx and is_instance_valid(_vfx):
 		if "radius" in _vfx:
 			_vfx.radius = radius
@@ -30,6 +35,7 @@ func spawn(pos: Vector2, r: float, dmg: float):
 func _apply_damage():
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	var r2 = radius * radius
+	var heal_total: float = 0.0
 	for enemy in enemies:
 		if not is_instance_valid(enemy):
 			continue
@@ -37,3 +43,8 @@ func _apply_damage():
 			var dist2 = global_position.distance_squared_to(enemy.global_position)
 			if dist2 <= r2:
 				enemy.take_damage(damage)
+				if _lifesteal_ratio > 0.0 and _instigator and is_instance_valid(_instigator) and _instigator.has_method("heal"):
+					heal_total += damage * _lifesteal_ratio
+
+	if heal_total > 0.0 and _instigator and is_instance_valid(_instigator) and _instigator.has_method("heal"):
+		_instigator.heal(heal_total)
