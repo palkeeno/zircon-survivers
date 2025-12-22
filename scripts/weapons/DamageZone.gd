@@ -5,10 +5,19 @@ class_name DamageZone
 @export var damage: float = 10.0
 @export var life_time: float = 0.15
 
+@onready var _vfx: Node = get_node_or_null("ZoneVFX")
+
 func spawn(pos: Vector2, r: float, dmg: float):
 	global_position = pos
 	radius = r
 	damage = dmg
+	if _vfx and is_instance_valid(_vfx):
+		if "radius" in _vfx:
+			_vfx.radius = radius
+		if "lifetime" in _vfx:
+			_vfx.lifetime = life_time
+		if _vfx.has_method("restart"):
+			_vfx.restart(life_time)
 	_apply_damage()
 	# Small lifetime so it can be seen/debugged if you add visuals later.
 	var t := Timer.new()

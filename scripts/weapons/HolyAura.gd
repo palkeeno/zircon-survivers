@@ -5,12 +5,17 @@ class_name HolyAura
 @export var tick_interval: float = 0.5
 
 var _tick_timer := 0.0
+@onready var _vfx: Node = get_node_or_null("AuraVFX")
 
 func _ready():
 	# HolyAura is always active (no cooldown-based firing)
 	set_process(true)
 
 func _process(delta: float) -> void:
+	# Keep visuals in sync even when not ticking damage.
+	if _vfx and is_instance_valid(_vfx) and ("radius" in _vfx):
+		_vfx.radius = aura_radius
+
 	_tick_timer -= delta
 	if _tick_timer > 0.0:
 		return
