@@ -16,6 +16,7 @@ script = ExtResource("1_script")
 speed = 80.0
 damage = 15.0
 hp = 80.0
+is_miniboss = true
 xp_gem_scene = ExtResource("3_gem")
 xp_value = 20
 

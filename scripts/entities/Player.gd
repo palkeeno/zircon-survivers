@@ -22,6 +22,8 @@ var _weapon_nodes := {} # ability_id -> Node
 var _is_phased: bool = false
 var _phase_timer: float = 0.0
 
+var shield_charges: int = 0
+
 @export var damage_zone_scene: PackedScene = preload("res://scenes/weapons/DamageZone.tscn")
 
 var current_hp : float
@@ -33,6 +35,7 @@ signal level_up(new_level)
 signal hp_changed(current, max)
 signal xp_changed(current, next)
 signal player_died
+signal shield_changed(charges)
 
 # Reference to joystick can be assigned in editor or found dynamically
 @export var joystick_path : NodePath
@@ -51,6 +54,7 @@ func _ready():
 	current_hp = max_hp
 	emit_signal("hp_changed", current_hp, max_hp)
 	emit_signal("xp_changed", experience, next_level_xp)
+	emit_signal("shield_changed", shield_charges)
 	
 	if not joystick_path.is_empty():
 		_joystick = get_node(joystick_path)
@@ -159,10 +163,21 @@ func _on_hurtbox_body_exited(body):
 func take_damage(amount: float):
 	if _is_phased:
 		return
+	if shield_charges > 0:
+		shield_charges -= 1
+		emit_signal("shield_changed", shield_charges)
+		return
 	current_hp -= amount
 	emit_signal("hp_changed", current_hp, max_hp)
 	if current_hp <= 0:
 		die()
+
+
+func add_shield_charges(count: int) -> void:
+	if count <= 0:
+		return
+	shield_charges += count
+	emit_signal("shield_changed", shield_charges)
 
 
 func heal(amount: float) -> void:

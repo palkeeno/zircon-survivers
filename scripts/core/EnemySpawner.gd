@@ -8,6 +8,13 @@ extends Node
 @export var spawn_radius_min: float = 500.0 
 @export var spawn_radius_max: float = 700.0
 
+@export var drop_item_scene: PackedScene = preload("res://scenes/objects/DropItem.tscn")
+@export var field_item_spawn_chance: float = 0.003 # 0.3% per spawn tick
+
+const _FIELD_ITEM_WEIGHT_HEART: int = 45
+const _FIELD_ITEM_WEIGHT_SHIELD: int = 45
+const _FIELD_ITEM_WEIGHT_MAGNET: int = 10
+
 # Optional: time-driven wave table. If empty, uses spawn_interval/enemy_scene.
 @export var waves: Array[Resource] = []
 
@@ -44,6 +51,8 @@ func _ready():
 			pm.create_pool(miniboss_scene, 10)
 		if boss_scene:
 			pm.create_pool(boss_scene, 5)
+		if drop_item_scene:
+			pm.create_pool(drop_item_scene, 12)
 
 	# Subscribe to time events
 	if has_node("/root/GameManager"):
@@ -126,6 +135,50 @@ func _on_spawn_timer_timeout():
 		if _i != 0:
 			pos_i = _get_random_spawn_position(player_pos)
 		_spawn_instance(scene_to_spawn, pos_i)
+
+	_maybe_spawn_field_item(player_pos)
+
+
+func _maybe_spawn_field_item(player_pos: Vector2) -> void:
+	if drop_item_scene == null:
+		return
+	if randf() > clampf(field_item_spawn_chance, 0.0, 1.0):
+		return
+	var pos := _get_random_spawn_position(player_pos)
+	_spawn_drop_item(pos, _roll_field_item_kind())
+
+
+func _spawn_drop_item(pos: Vector2, kind: String) -> void:
+	var item = null
+	if has_node("/root/PoolManager"):
+		item = get_node("/root/PoolManager").get_instance(drop_item_scene)
+	else:
+		item = drop_item_scene.instantiate()
+		if item:
+			add_child(item)
+
+	if not item:
+		return
+	# Reparent to game container so it's on the field.
+	if _container and item.get_parent() != _container:
+		item.reparent(_container)
+	if item.has_method("spawn"):
+		item.spawn(pos, kind)
+	else:
+		item.global_position = pos
+		if "item_kind" in item:
+			item.item_kind = kind
+
+
+func _roll_field_item_kind() -> String:
+	var total: int = _FIELD_ITEM_WEIGHT_HEART + _FIELD_ITEM_WEIGHT_SHIELD + _FIELD_ITEM_WEIGHT_MAGNET
+	var r: int = randi() % maxi(1, total)
+	if r < _FIELD_ITEM_WEIGHT_HEART:
+		return "Heart"
+	r -= _FIELD_ITEM_WEIGHT_HEART
+	if r < _FIELD_ITEM_WEIGHT_SHIELD:
+		return "Shield"
+	return "Magnet"
 
 func _try_spawn_scheduled_bosses() -> bool:
 	# Boss has priority over miniboss if both are pending.

@@ -6,7 +6,12 @@ class_name Enemy
 @export var hp: float = 10.0 # Treated as Max HP
 @export var damage_number_scene: PackedScene = preload("res://scenes/ui/DamageNumber.tscn")
 
+@export var is_miniboss: bool = false
+@export var is_boss: bool = false
+
 var current_hp: float
+
+var _is_dead: bool = false
 
 var _target: Node2D = null
 
@@ -19,6 +24,7 @@ func _ready():
 func spawn(pos: Vector2):
 	global_position = pos
 	current_hp = hp
+	_is_dead = false
 	_clear_damage_numbers()
 	_update_hp_bar()
 	
@@ -40,6 +46,8 @@ func _physics_process(_delta):
 func take_damage(amount: float):
 	if amount <= 0.0:
 		return
+	if _is_dead:
+		return
 
 	current_hp -= amount
 	_show_damage_number(amount)
@@ -50,11 +58,26 @@ func take_damage(amount: float):
 @export var xp_value: int = 1
 @export var xp_gem_scene: PackedScene
 
+@export var drop_item_scene: PackedScene = preload("res://scenes/objects/DropItem.tscn")
+
+@export var item_drop_chance: float = 0.005 # 0.5% per kill
+
+const _ITEM_WEIGHT_HEART: int = 45
+const _ITEM_WEIGHT_SHIELD: int = 45
+const _ITEM_WEIGHT_MAGNET: int = 10 # extremely low
+
 # ... existing code ...
 
 func die():
-	# Drop XP deferred to avoid physics callback errors (add_child)
-	call_deferred("_drop_xp")
+	if _is_dead:
+		return
+	_is_dead = true
+
+	# Drop loot deferred to avoid physics callback errors (add_child)
+	var drop_parent: Node = get_parent()
+	var drop_pos: Vector2 = global_position
+	call_deferred("_drop_xp_at", drop_parent, drop_pos)
+	call_deferred("_drop_items_at", drop_parent, drop_pos)
 
 	# Return to pool instead of queue_free
 	if has_node("/root/PoolManager"):
@@ -62,14 +85,76 @@ func die():
 	else:
 		queue_free()
 
-func _drop_xp():
+func _drop_xp_at(parent_node: Node, pos: Vector2) -> void:
+	if parent_node == null or not is_instance_valid(parent_node):
+		return
 	if xp_gem_scene and has_node("/root/PoolManager"):
 		var gem = get_node("/root/PoolManager").get_instance(xp_gem_scene)
 		if gem:
+			if gem.get_parent() != parent_node:
+				gem.reparent(parent_node)
 			if gem.has_method("spawn"):
-				gem.spawn(global_position, xp_value)
+				gem.spawn(pos, xp_value)
 			else:
-				gem.global_position = global_position
+				gem.global_position = pos
+
+func _drop_items_at(parent_node: Node, pos: Vector2) -> void:
+	if parent_node == null or not is_instance_valid(parent_node):
+		return
+	if drop_item_scene == null:
+		return
+
+	# Boss: Magnet guaranteed + (optional) one extra item at normal chance.
+	if is_boss:
+		_spawn_item(parent_node, pos, "Magnet")
+		if randf() <= clampf(item_drop_chance, 0.0, 1.0):
+			_spawn_item(parent_node, pos, _roll_non_magnet_kind())
+		return
+
+	# Miniboss: guaranteed exactly 1 item.
+	if is_miniboss:
+		_spawn_item(parent_node, pos, _roll_item_kind())
+		return
+
+	# Normal enemy: at most 1 item.
+	if randf() <= clampf(item_drop_chance, 0.0, 1.0):
+		_spawn_item(parent_node, pos, _roll_item_kind())
+		return
+
+
+func _spawn_item(parent_node: Node, pos: Vector2, kind: String) -> void:
+	var item = null
+	if has_node("/root/PoolManager"):
+		item = get_node("/root/PoolManager").get_instance(drop_item_scene)
+	else:
+		item = drop_item_scene.instantiate()
+		if item:
+			parent_node.add_child(item)
+
+	if item == null:
+		return
+	if item.get_parent() != parent_node:
+		item.reparent(parent_node)
+	if item.has_method("spawn"):
+		item.spawn(pos, kind)
+	else:
+		item.global_position = pos
+		if "item_kind" in item:
+			item.item_kind = kind
+
+func _roll_item_kind() -> String:
+	var total: int = _ITEM_WEIGHT_HEART + _ITEM_WEIGHT_SHIELD + _ITEM_WEIGHT_MAGNET
+	var r: int = randi() % maxi(1, total)
+	if r < _ITEM_WEIGHT_HEART:
+		return "Heart"
+	r -= _ITEM_WEIGHT_HEART
+	if r < _ITEM_WEIGHT_SHIELD:
+		return "Shield"
+	return "Magnet"
+
+func _roll_non_magnet_kind() -> String:
+	# Used for boss bonus drop (magnet already guaranteed).
+	return "Heart" if (randi() % 2 == 0) else "Shield"
 
 func _ensure_overhead_ui() -> void:
 	# Creates per-enemy UI (HP bar + damage numbers) if not present.

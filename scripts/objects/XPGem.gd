@@ -8,14 +8,28 @@ var _target: Node2D = null
 var _is_collected: bool = false
 var _velocity: Vector2 = Vector2.ZERO
 
+var _base_collision_layer: int = 0
+var _base_collision_mask: int = 0
+
 func _ready():
 	add_to_group("loot")
+	add_to_group("xp")
+	_base_collision_layer = collision_layer
+	_base_collision_mask = collision_mask
 
 func spawn(pos: Vector2, xp_value: int):
 	global_position = pos
 	value = xp_value
 	_is_collected = false
 	_target = null
+	_velocity = Vector2.ZERO
+	monitoring = true
+	monitorable = true
+	collision_layer = _base_collision_layer
+	collision_mask = _base_collision_mask
+	var cs: CollisionShape2D = get_node_or_null("CollisionShape2D")
+	if cs:
+		cs.disabled = false
 
 func _physics_process(delta):
 	if _target and is_instance_valid(_target):
@@ -42,6 +56,17 @@ func _collect():
 	_despawn()
 
 func _despawn():
+	# Prevent repeated collection while returning to pool.
+	monitoring = false
+	monitorable = false
+	collision_layer = 0
+	collision_mask = 0
+	var cs: CollisionShape2D = get_node_or_null("CollisionShape2D")
+	if cs:
+		cs.disabled = true
+	_target = null
+	_velocity = Vector2.ZERO
+	_is_collected = false
 	if has_node("/root/PoolManager"):
 		get_node("/root/PoolManager").return_instance(self, scene_file_path)
 	else:
