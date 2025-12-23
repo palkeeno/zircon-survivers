@@ -30,6 +30,28 @@ func _process(_delta):
 		if _try_shoot():
 			_start_cooldown()
 
+
+func _get_active_enemies() -> Array[Node2D]:
+	# Enemies are pooled: pooled instances stay in the tree and in the group,
+	# but have process_mode disabled and are invisible. Filter them out.
+	var out: Array[Node2D] = []
+	var enemies := get_tree().get_nodes_in_group("enemies")
+	for e in enemies:
+		if not is_instance_valid(e):
+			continue
+		if not e.is_inside_tree():
+			continue
+		if e.process_mode == Node.PROCESS_MODE_DISABLED:
+			continue
+		if not (e is Node2D):
+			continue
+		var n := e as Node2D
+		# Pooled instances are hidden; avoid targeting them even if process_mode differs.
+		if n is CanvasItem and not (n as CanvasItem).visible:
+			continue
+		out.append(n)
+	return out
+
 func _try_shoot() -> bool:
 	# Virtual method
 	return false

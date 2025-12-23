@@ -10,8 +10,8 @@ class_name ShockwaveWeapon
 
 
 func _try_shoot() -> bool:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	if enemies.size() == 0:
+	var enemies := _get_active_enemies()
+	if enemies.is_empty():
 		return false
 
 	var first = _find_nearest_enemy(enemies, global_position, start_range, [])

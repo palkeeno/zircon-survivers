@@ -31,7 +31,7 @@ func _try_shoot() -> bool:
 	return true
 
 func _find_nearest_enemies(count: int) -> Array[Node2D]:
-	var enemies := get_tree().get_nodes_in_group("enemies")
+	var enemies := _get_active_enemies()
 	if enemies.is_empty():
 		return []
 

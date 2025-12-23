@@ -15,8 +15,8 @@ class_name PiercingBeam
 
 
 func _try_shoot() -> bool:
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	if enemies.size() == 0:
+	var enemies := _get_active_enemies()
+	if enemies.is_empty():
 		return false
 
 	var nearest: Node2D = _find_nearest_enemy(enemies)

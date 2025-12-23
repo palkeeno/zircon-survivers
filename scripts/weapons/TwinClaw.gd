@@ -15,13 +15,7 @@ func _try_shoot() -> bool:
 		return false
 
 	var player_node: Node = get_parent()
-	var dir := Vector2.RIGHT
-	if player_node and player_node.has_method("get_aim_direction"):
-		dir = player_node.call("get_aim_direction")
-	if dir == Vector2.ZERO:
-		dir = Vector2.RIGHT
-	else:
-		dir = dir.normalized()
+	var dir := _get_attack_direction(player_node)
 
 	var count: int = maxi(1, slashes_per_fire)
 	for _i in range(count):
@@ -32,6 +26,31 @@ func _try_shoot() -> bool:
 		_spawn_zone(fpos, claw_radius, damage * owner_damage_mult, player_node)
 		_spawn_zone(bpos, claw_radius, damage * owner_damage_mult, player_node)
 	return true
+
+
+func _get_attack_direction(player_node: Node) -> Vector2:
+	# Prefer the nearest enemy so the attack works even when the player isn't moving.
+	var enemies := _get_active_enemies()
+	var origin := global_position
+	var best: Node2D = null
+	var min_d2 := INF
+	for e in enemies:
+		var d2 := origin.distance_squared_to(e.global_position)
+		if d2 < min_d2:
+			min_d2 = d2
+			best = e
+	if best:
+		var to_enemy := origin.direction_to(best.global_position)
+		if to_enemy != Vector2.ZERO:
+			return to_enemy.normalized()
+
+	# Fallback: keep existing behavior (aim direction) when there are no enemies.
+	var dir := Vector2.RIGHT
+	if player_node and player_node.has_method("get_aim_direction"):
+		dir = player_node.call("get_aim_direction")
+	if dir == Vector2.ZERO:
+		return Vector2.RIGHT
+	return dir.normalized()
 
 
 func _spawn_slash_vfx(pos: Vector2, direction: Vector2, r: float) -> void:

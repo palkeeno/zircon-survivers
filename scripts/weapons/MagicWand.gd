@@ -27,8 +27,8 @@ func _try_shoot() -> bool:
 	return false
 
 func _find_nearest_enemy():
-	var enemies = get_tree().get_nodes_in_group("enemies")
-	if enemies.size() == 0:
+	var enemies := _get_active_enemies()
+	if enemies.is_empty():
 		_nearest_enemy = null
 		return
 
