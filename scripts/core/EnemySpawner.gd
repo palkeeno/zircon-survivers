@@ -184,26 +184,32 @@ func _try_spawn_scheduled_bosses() -> bool:
 	# Boss has priority over miniboss if both are pending.
 	if _pending_boss_indices.size() > 0 and boss_scene:
 		_pending_boss_indices.pop_front()
-		_spawn_special(boss_scene)
+		if _spawn_special(boss_scene) and has_node("/root/GameManager"):
+			var gm = get_node("/root/GameManager")
+			if gm.has_signal("boss_spawned"):
+				gm.emit_signal("boss_spawned")
 		return true
 
 	if _pending_miniboss_minutes.size() > 0 and miniboss_scene:
 		_pending_miniboss_minutes.pop_front()
-		_spawn_special(miniboss_scene)
+		if _spawn_special(miniboss_scene) and has_node("/root/GameManager"):
+			var gm2 = get_node("/root/GameManager")
+			if gm2.has_signal("miniboss_spawned"):
+				gm2.emit_signal("miniboss_spawned")
 		return true
 
 	return false
 
-func _spawn_special(scene: PackedScene) -> void:
+func _spawn_special(scene: PackedScene) -> bool:
 	var player_ref = null
 	if has_node("/root/GameManager"):
 		player_ref = get_node("/root/GameManager").player_reference
 	if not player_ref:
-		return
+		return false
 	var pos = _get_random_spawn_position(player_ref.global_position)
-	_spawn_instance(scene, pos)
+	return _spawn_instance(scene, pos)
 
-func _spawn_instance(scene: PackedScene, pos: Vector2) -> void:
+func _spawn_instance(scene: PackedScene, pos: Vector2) -> bool:
 	var instance = null
 	if has_node("/root/PoolManager"):
 		instance = get_node("/root/PoolManager").get_instance(scene)
@@ -213,7 +219,7 @@ func _spawn_instance(scene: PackedScene, pos: Vector2) -> void:
 			add_child(instance)
 
 	if not instance:
-		return
+		return false
 
 	# Reparent to the game container (e.g. for Y-Sorting)
 	if _container and instance.get_parent() != _container:
@@ -223,6 +229,7 @@ func _spawn_instance(scene: PackedScene, pos: Vector2) -> void:
 		instance.spawn(pos)
 	else:
 		instance.global_position = pos
+	return true
 
 func _get_random_spawn_position(center: Vector2) -> Vector2:
 	var angle = randf() * TAU

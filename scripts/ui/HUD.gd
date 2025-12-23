@@ -6,11 +6,16 @@ extends CanvasLayer
 @onready var xp_bar = $Control/MarginContainer/VBoxContainer/XPBar
 @onready var level_label = $Control/MarginContainer/VBoxContainer/XPBar/LevelLabel
 @onready var loadout_label = $Control/MarginContainer/VBoxContainer/LoadoutLabel
+@onready var time_label: Label = $Control/MarginContainer/VBoxContainer/TimeLabel
 @onready var weapons_icons = $Control/MarginContainer/VBoxContainer/WeaponsIcons
 @onready var specials_icons = $Control/MarginContainer/VBoxContainer/SpecialsIcons
 @onready var item_indicators_layer: Control = $Control/ItemIndicators
 
 var _loadout_manager: Node = null
+
+var _timer_fx_tween: Tween = null
+var _timer_default_modulate: Color = Color(1, 1, 1, 1)
+var _timer_default_scale: Vector2 = Vector2.ONE
 
 func _ready():
 	# Connect to Player signals if available via GameManager
@@ -22,6 +27,40 @@ func _ready():
 		var gm = get_node("/root/GameManager")
 		if gm.player_reference:
 			_connect_player(gm.player_reference)
+
+		# Timer label defaults
+		if time_label:
+			_timer_default_modulate = time_label.modulate
+			_timer_default_scale = time_label.scale
+			time_label.text = _format_time(0.0)
+			# Reflect current GM time if present
+			if "run_time_sec" in gm:
+				time_label.text = _format_time(float(gm.run_time_sec))
+
+		# Subscribe to GM time and boss/miniboss events
+		if gm.has_signal("run_time_changed"):
+			var c := Callable(self, "_on_run_time_changed")
+			if not gm.is_connected("run_time_changed", c):
+				gm.run_time_changed.connect(c)
+
+		# Prefer actual spawn signals if available; fall back to requested signals.
+		if gm.has_signal("miniboss_spawned"):
+			var c_minispawn := Callable(self, "_on_miniboss_spawned")
+			if not gm.is_connected("miniboss_spawned", c_minispawn):
+				gm.miniboss_spawned.connect(c_minispawn)
+		elif gm.has_signal("miniboss_requested"):
+			var c_minireq := Callable(self, "_on_miniboss_requested")
+			if not gm.is_connected("miniboss_requested", c_minireq):
+				gm.miniboss_requested.connect(c_minireq)
+
+		if gm.has_signal("boss_spawned"):
+			var c_bosspawn := Callable(self, "_on_boss_spawned")
+			if not gm.is_connected("boss_spawned", c_bosspawn):
+				gm.boss_spawned.connect(c_bosspawn)
+		elif gm.has_signal("boss_requested"):
+			var c_bosreq := Callable(self, "_on_boss_requested")
+			if not gm.is_connected("boss_requested", c_bosreq):
+				gm.boss_requested.connect(c_bosreq)
 		
 		# Also watch for future registrations (not implemented in GM yet, but we can poll or use a signal if we added one)
 		# For now, let's assume Main creates HUD after Player, or we poll in process once.
@@ -265,3 +304,53 @@ func _on_loadout_changed():
 					texrect_s.texture = tex_s
 					continue
 		texrect_s.texture = null
+
+
+func _format_time(time_sec: float) -> String:
+	var total := maxi(0, int(floor(time_sec)))
+	var minutes := total / 60
+	var seconds := total % 60
+	return "%02d:%02d" % [minutes, seconds]
+
+
+func _on_run_time_changed(time_sec: float) -> void:
+	if time_label == null:
+		return
+	time_label.text = _format_time(time_sec)
+
+
+func _on_miniboss_spawned() -> void:
+	_play_timer_alert(false)
+
+
+func _on_boss_spawned() -> void:
+	_play_timer_alert(true)
+
+
+func _on_miniboss_requested(_minute: int) -> void:
+	# Fallback when only "requested" signal exists.
+	_play_timer_alert(false)
+
+
+func _on_boss_requested(_boss_index: int) -> void:
+	# Fallback when only "requested" signal exists.
+	_play_timer_alert(true)
+
+
+func _play_timer_alert(is_boss: bool) -> void:
+	if time_label == null:
+		return
+	if _timer_fx_tween and _timer_fx_tween.is_running():
+		_timer_fx_tween.kill()
+
+	# Ensure pivot is centered for scale pop.
+	time_label.pivot_offset = time_label.size * 0.5
+
+	var flash_color := Color(1, 0.35, 0.35, 1) if is_boss else Color(0.35, 0.65, 1, 1)
+	time_label.modulate = flash_color
+	time_label.scale = _timer_default_scale * 1.25
+
+	_timer_fx_tween = create_tween()
+	_timer_fx_tween.set_parallel(true)
+	_timer_fx_tween.tween_property(time_label, "scale", _timer_default_scale, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_timer_fx_tween.tween_property(time_label, "modulate", _timer_default_modulate, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)

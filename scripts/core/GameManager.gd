@@ -11,6 +11,8 @@ signal run_time_changed(time_sec)
 signal minute_reached(minute)
 signal miniboss_requested(minute)
 signal boss_requested(boss_index)
+signal miniboss_spawned
+signal boss_spawned
 
 enum GameState {
 	MENU,
@@ -20,7 +22,7 @@ enum GameState {
 	LEVEL_UP
 }
 
-var current_state: GameState = GameState.MENU
+var current_state: GameState = GameState.PLAYING
 var player_reference: Node2D = null
 
 # Run timer (seconds since run started). Only advances in PLAYING.
