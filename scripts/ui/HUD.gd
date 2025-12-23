@@ -6,9 +6,11 @@ extends CanvasLayer
 @onready var xp_bar = $Control/MarginContainer/VBoxContainer/XPBar
 @onready var level_label = $Control/MarginContainer/VBoxContainer/XPBar/LevelLabel
 @onready var loadout_label = $Control/MarginContainer/VBoxContainer/LoadoutLabel
-@onready var time_label: Label = $Control/MarginContainer/VBoxContainer/TimeLabel
-@onready var weapons_icons = $Control/MarginContainer/VBoxContainer/WeaponsIcons
-@onready var specials_icons = $Control/MarginContainer/VBoxContainer/SpecialsIcons
+@onready var time_label: Label = $Control/MarginContainer/VBoxContainer/SecondRow/TimeLabel
+@onready var weapons_icons = $Control/MarginContainer/VBoxContainer/SecondRow/InventoryBox/WeaponsIcons
+@onready var specials_icons = $Control/MarginContainer/VBoxContainer/SecondRow/InventoryBox/SpecialsIcons
+@onready var pause_button: Button = $Control/MarginContainer/VBoxContainer/SecondRow/PauseButton
+@onready var pause_menu: CanvasLayer = $PauseMenu
 @onready var item_indicators_layer: Control = $Control/ItemIndicators
 
 var _loadout_manager: Node = null
@@ -61,11 +63,24 @@ func _ready():
 			var c_bosreq := Callable(self, "_on_boss_requested")
 			if not gm.is_connected("boss_requested", c_bosreq):
 				gm.boss_requested.connect(c_bosreq)
+
+		# Pause button
+		if pause_button:
+			pause_button.pressed.connect(_on_pause_pressed)
+			pause_button.disabled = (gm.current_state != gm.GameState.PLAYING) if "GameState" in gm else false
+
+		# Close pause menu when game resumes
+		if gm.has_signal("game_paused"):
+			var c_pause := Callable(self, "_on_game_paused")
+			if not gm.is_connected("game_paused", c_pause):
+				gm.game_paused.connect(c_pause)
 		
 		# Also watch for future registrations (not implemented in GM yet, but we can poll or use a signal if we added one)
 		# For now, let's assume Main creates HUD after Player, or we poll in process once.
 		
 	set_process(true)
+	if loadout_label:
+		loadout_label.visible = false
 
 var _player_connected = false
 var _item_indicator_nodes: Dictionary = {} # instance_id -> Control
@@ -76,6 +91,44 @@ func _process(_delta):
 		if gm.player_reference:
 			_connect_player(gm.player_reference)
 	_update_item_indicators()
+	_update_pause_button_state()
+
+
+func _update_pause_button_state() -> void:
+	if pause_button == null:
+		return
+	if not has_node("/root/GameManager"):
+		pause_button.disabled = false
+		return
+	var gm = get_node("/root/GameManager")
+	# PLAYING中のみ押せる
+	if "current_state" in gm and "GameState" in gm:
+		pause_button.disabled = (gm.current_state != gm.GameState.PLAYING)
+	else:
+		pause_button.disabled = false
+
+
+func _on_pause_pressed() -> void:
+	if not has_node("/root/GameManager"):
+		return
+	var gm = get_node("/root/GameManager")
+	if "current_state" in gm and "GameState" in gm:
+		if gm.current_state != gm.GameState.PLAYING:
+			return
+	gm.pause_game()
+	if pause_menu and pause_menu.has_method("open"):
+		pause_menu.call("open")
+	else:
+		pause_menu.visible = true
+
+
+func _on_game_paused(is_paused: bool) -> void:
+	# 外部から再開された場合もメニューを閉じる
+	if not is_paused:
+		if pause_menu and pause_menu.has_method("close"):
+			pause_menu.call("close")
+		elif pause_menu:
+			pause_menu.visible = false
 
 
 func _update_item_indicators() -> void:
@@ -258,10 +311,12 @@ func _on_loadout_changed():
 		var s = specials[i]
 		s_slots[i] = "%s Lv%d" % [str(s.get("name", "")), int(s.get("level", 1))]
 
-	loadout_label.text = "W: %s\nS: %s" % [" | ".join(w_slots), " | ".join(s_slots)]
+	# HUD上のインベントリはアイコン表示のみ（文字表示なし）
+	if loadout_label:
+		loadout_label.visible = false
 
-	# マップタイル相当のサイズ（必要ならここだけ調整）
-	var icon_size := Vector2(16, 16)
+	# アイコンを倍サイズへ
+	var icon_size := Vector2(48, 48)
 
 	# Set weapon icons
 	for i in range(4):

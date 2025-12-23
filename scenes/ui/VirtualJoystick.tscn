@@ -10,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1_script")
 
 [node name="TouchZone" type="Control" parent="."]
@@ -22,6 +23,7 @@ offset_top = -250.0
 offset_right = 350.0
 offset_bottom = -50.0
 grow_vertical = 0
+mouse_filter = 2
 
 [node name="DebugVisual" type="ColorRect" parent="TouchZone"]
 layout_mode = 1
@@ -39,6 +41,7 @@ offset_left = 64.0
 offset_top = 376.0
 offset_right = 264.0
 offset_bottom = 576.0
+mouse_filter = 2
 script = ExtResource("2_circle")
 fill_color = Color(0, 0, 0, 0.1)
 
@@ -56,5 +59,6 @@ offset_right = 50.0
 offset_bottom = 50.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("2_circle")
 fill_color = Color(0, 0, 0, 0.25)

@@ -150,6 +150,16 @@ func die():
 		return
 	_is_dead = true
 
+	# 撃破時に敵が即座にプールへ戻ると、敵配下のダメージ数字も消えてしまう。
+	# 先にダメージ数字を親へ移して表示を継続する。
+	var keep_parent: Node = get_parent()
+	while keep_parent != null and is_instance_valid(keep_parent) and not (keep_parent is CanvasItem):
+		keep_parent = keep_parent.get_parent()
+	if keep_parent != null and is_instance_valid(keep_parent) and _damage_numbers != null and is_instance_valid(_damage_numbers):
+		for child in _damage_numbers.get_children():
+			if child != null and is_instance_valid(child):
+				child.reparent(keep_parent, true)
+
 	# Drop loot deferred to avoid physics callback errors (add_child)
 	var drop_parent: Node = get_parent()
 	var drop_pos: Vector2 = global_position

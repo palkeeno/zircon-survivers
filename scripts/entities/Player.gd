@@ -24,6 +24,12 @@ var _phase_timer: float = 0.0
 
 var shield_charges: int = 0
 
+var _hp_ui_root: Control = null
+var _hp_ui_bar: ProgressBar = null
+var _hp_ui_label: Label = null
+var _shield_ui_row: Control = null
+var _shield_ui_count: Label = null
+
 @export var damage_zone_scene: PackedScene = preload("res://scenes/weapons/DamageZone.tscn")
 
 var current_hp : float
@@ -281,6 +287,12 @@ func _ready():
 	emit_signal("hp_changed", current_hp, max_hp)
 	emit_signal("xp_changed", experience, next_level_xp)
 	emit_signal("shield_changed", shield_charges)
+
+	_create_world_hp_ui()
+	hp_changed.connect(_on_self_hp_changed_for_ui)
+	_on_self_hp_changed_for_ui(current_hp, max_hp)
+	shield_changed.connect(_on_self_shield_changed_for_ui)
+	_on_self_shield_changed_for_ui(shield_charges)
 	
 	if not joystick_path.is_empty():
 		_joystick = get_node(joystick_path)
@@ -342,6 +354,110 @@ func _ready():
 		get_node("/root/GameManager").game_paused.connect(_on_game_paused)
 
 	_bootstrap_existing_weapon_nodes()
+
+
+func _create_world_hp_ui() -> void:
+	# Playerの子として生成すればキャラクターに追従する
+	if _hp_ui_root != null and is_instance_valid(_hp_ui_root):
+		return
+
+	_hp_ui_root = Control.new()
+	_hp_ui_root.name = "WorldHP"
+	_hp_ui_root.z_index = 100
+	_hp_ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hp_ui_root.size = Vector2(90, 28)
+	# HPバー(+盾スタック行)の高さ分だけ少し上げて、全体の位置感を維持
+	_hp_ui_root.position = Vector2(-45, 30)
+	add_child(_hp_ui_root)
+
+	_hp_ui_bar = ProgressBar.new()
+	_hp_ui_bar.name = "HPBar"
+	_hp_ui_bar.show_percentage = false
+	_hp_ui_bar.size_flags_horizontal = Control.SIZE_FILL
+	_hp_ui_bar.size_flags_vertical = Control.SIZE_FILL
+	_hp_ui_bar.custom_minimum_size = Vector2(_hp_ui_root.size.x, 14)
+	_hp_ui_bar.size = Vector2(_hp_ui_root.size.x, 14)
+	_hp_ui_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.25, 0.05, 0.05, 1)
+	bg.corner_radius_top_left = 3
+	bg.corner_radius_top_right = 3
+	bg.corner_radius_bottom_left = 3
+	bg.corner_radius_bottom_right = 3
+	bg.content_margin_left = 2
+	bg.content_margin_top = 2
+	bg.content_margin_right = 2
+	bg.content_margin_bottom = 2
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.95, 0.15, 0.15, 1)
+	fill.corner_radius_top_left = 3
+	fill.corner_radius_top_right = 3
+	fill.corner_radius_bottom_left = 3
+	fill.corner_radius_bottom_right = 3
+	_hp_ui_bar.add_theme_stylebox_override("background", bg)
+	_hp_ui_bar.add_theme_stylebox_override("fill", fill)
+	_hp_ui_root.add_child(_hp_ui_bar)
+
+	_hp_ui_label = Label.new()
+	_hp_ui_label.name = "HPText"
+	_hp_ui_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_hp_ui_label.offset_left = 0
+	_hp_ui_label.offset_top = 0
+	_hp_ui_label.offset_right = 0
+	_hp_ui_label.offset_bottom = 0
+	_hp_ui_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hp_ui_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_hp_ui_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	_hp_ui_label.add_theme_font_size_override("font_size", 12)
+	_hp_ui_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hp_ui_bar.add_child(_hp_ui_label)
+
+	# シールドスタック表示（HPバーの下）
+	_shield_ui_row = Control.new()
+	_shield_ui_row.name = "ShieldRow"
+	_shield_ui_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shield_ui_row.size = Vector2(_hp_ui_root.size.x, 12)
+	_shield_ui_row.position = Vector2(0, 16)
+	_hp_ui_root.add_child(_shield_ui_row)
+
+	var icon := Label.new()
+	icon.name = "ShieldIcon"
+	icon.text = "🛡"
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.add_theme_font_size_override("font_size", 12)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.position = Vector2(0, -1)
+	icon.size = Vector2(16, 12)
+	_shield_ui_row.add_child(icon)
+
+	_shield_ui_count = Label.new()
+	_shield_ui_count.name = "ShieldCount"
+	_shield_ui_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_shield_ui_count.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_shield_ui_count.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	_shield_ui_count.add_theme_font_size_override("font_size", 12)
+	_shield_ui_count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shield_ui_count.position = Vector2(16, -1)
+	_shield_ui_count.size = Vector2(_hp_ui_root.size.x - 16, 12)
+	_shield_ui_row.add_child(_shield_ui_count)
+
+	_on_self_shield_changed_for_ui(shield_charges)
+
+
+func _on_self_hp_changed_for_ui(current: float, max_val: float) -> void:
+	if _hp_ui_bar == null or _hp_ui_label == null:
+		return
+	_hp_ui_bar.max_value = max_val
+	_hp_ui_bar.value = current
+	_hp_ui_label.text = "%d / %d" % [int(current), int(max_val)]
+
+func _on_self_shield_changed_for_ui(charges: int) -> void:
+	if _shield_ui_row == null or _shield_ui_count == null:
+		return
+	var c := int(max(0, charges))
+	_shield_ui_row.visible = c > 0
+	_shield_ui_count.text = "x%d" % c
 
 func _on_magnet_area_entered(area):
 	# If area is XPGem (has 'collect' method)

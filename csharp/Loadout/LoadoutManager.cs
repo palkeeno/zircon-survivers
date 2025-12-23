@@ -75,6 +75,55 @@ public partial class LoadoutManager : Node
         return new Godot.Collections.Array { weapons, specials };
     }
 
+    // UI向け: 所持アイテムの詳細情報（説明/基礎CD/強化スタック）
+    public Godot.Collections.Array GetLoadoutDetailsForUI()
+    {
+        var ui = new Godot.Collections.Array();
+
+        foreach (var w in _weapons)
+        {
+            var def = w.Def;
+            ui.Add(ToUiDetail(def, w));
+        }
+
+        foreach (var s in _specials)
+        {
+            var def = s.Def;
+            ui.Add(ToUiDetail(def, s));
+        }
+
+        return ui;
+    }
+
+    private static Godot.Collections.Dictionary ToUiDetail(AbilityDef def, AbilityInstance inst)
+    {
+        var upgrades = new Godot.Collections.Array();
+        foreach (var u in def.Upgrades)
+        {
+            upgrades.Add(new Godot.Collections.Dictionary
+            {
+                ["id"] = u.Id,
+                ["name"] = u.Name,
+                ["description"] = u.Description,
+                ["max_stacks"] = u.MaxStacks,
+                ["stacks"] = inst.GetStacks(u.Id),
+            });
+        }
+
+        return new Godot.Collections.Dictionary
+        {
+            ["id"] = def.Id,
+            ["name"] = def.Name,
+            ["description"] = def.Description,
+            ["level"] = inst.Level,
+            ["slot_kind"] = def.SlotKind.ToString(),
+            ["special_kind"] = def.SpecialKind?.ToString() ?? "",
+            ["icon_path"] = def.IconPath ?? "",
+            ["base_cooldown_sec"] = def.BaseCooldownSec,
+            ["upgrades"] = upgrades,
+        };
+    }
+
     public Godot.Collections.Array GenerateOffers(int count = 4)
     {
         EnsureStartingWeapon();
