@@ -2,8 +2,9 @@ extends "res://scripts/weapons/Weapon.gd"
 class_name TwinClaw
 
 @export var zone_scene: PackedScene = preload("res://scenes/weapons/DamageZone.tscn")
-@export var slash_vfx_scene: PackedScene = preload("res://scenes/weapons/SlashVFX.tscn")
+@export var slash_vfx_scene: PackedScene = preload("res://scenes/weapons/TwinClawVFX.tscn")
 @export var claw_radius: float = 70.0
+@export var hit_radius_mult: float = 1.08
 @export var reach: float = 95.0
 @export var slashes_per_fire: int = 1
 
@@ -21,10 +22,11 @@ func _try_shoot() -> bool:
 	for _i in range(count):
 		var fpos := global_position + dir * reach
 		var bpos := global_position - dir * reach
-		_spawn_slash_vfx(fpos, dir, claw_radius)
-		_spawn_slash_vfx(bpos, -dir, claw_radius)
-		_spawn_zone(fpos, claw_radius, damage * owner_damage_mult, player_node)
-		_spawn_zone(bpos, claw_radius, damage * owner_damage_mult, player_node)
+		var hit_r := claw_radius * maxf(0.01, hit_radius_mult)
+		_spawn_slash_vfx(fpos, dir, hit_r)
+		_spawn_slash_vfx(bpos, -dir, hit_r)
+		_spawn_zone(fpos, hit_r, damage * owner_damage_mult, player_node)
+		_spawn_zone(bpos, hit_r, damage * owner_damage_mult, player_node)
 	return true
 
 
@@ -66,6 +68,6 @@ func _spawn_zone(pos: Vector2, r: float, dmg: float, instigator: Node) -> void:
 	var zone = zone_scene.instantiate()
 	get_tree().current_scene.add_child(zone)
 	if zone.has_method("spawn"):
-		zone.spawn(pos, r, dmg, instigator, lifesteal_ratio)
+		zone.spawn(pos, r, dmg, instigator, lifesteal_ratio, false)
 	else:
 		zone.global_position = pos

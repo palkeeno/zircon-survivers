@@ -10,19 +10,22 @@ var _lifesteal_ratio: float = 0.0
 
 @onready var _vfx: Node = get_node_or_null("ZoneVFX")
 
-func spawn(pos: Vector2, r: float, dmg: float, instigator: Node = null, lifesteal_ratio: float = 0.0):
+func spawn(pos: Vector2, r: float, dmg: float, instigator: Node = null, lifesteal_ratio: float = 0.0, show_vfx: bool = true):
 	global_position = pos
 	radius = r
 	damage = dmg
 	_instigator = instigator
 	_lifesteal_ratio = maxf(0.0, lifesteal_ratio)
 	if _vfx and is_instance_valid(_vfx):
-		if "radius" in _vfx:
-			_vfx.radius = radius
-		if "lifetime" in _vfx:
-			_vfx.lifetime = life_time
-		if _vfx.has_method("restart"):
-			_vfx.restart(life_time)
+		if "visible" in _vfx:
+			_vfx.visible = show_vfx
+		if show_vfx:
+			if "radius" in _vfx:
+				_vfx.radius = radius
+			if "lifetime" in _vfx:
+				_vfx.lifetime = life_time
+			if _vfx.has_method("restart"):
+				_vfx.restart(life_time)
 	_apply_damage()
 	# Small lifetime so it can be seen/debugged if you add visuals later.
 	var t := Timer.new()
