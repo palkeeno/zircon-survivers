@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var level_label = $Control/MarginContainer/VBoxContainer/XPBar/LevelLabel
 @onready var loadout_label = $Control/MarginContainer/VBoxContainer/LoadoutLabel
 @onready var time_label: Label = $Control/MarginContainer/VBoxContainer/SecondRow/TimeLabel
+@onready var score_label: Label = $Control/MarginContainer/VBoxContainer/SecondRow/ScoreLabel
 @onready var weapons_icons = $Control/MarginContainer/VBoxContainer/SecondRow/InventoryBox/WeaponsIcons
 @onready var specials_icons = $Control/MarginContainer/VBoxContainer/SecondRow/InventoryBox/SpecialsIcons
 @onready var pause_button: Button = $Control/MarginContainer/VBoxContainer/SecondRow/PauseButton
@@ -27,6 +28,13 @@ func _ready():
 	# Wait for Player to register? Or check GameManager.
 	if has_node("/root/GameManager"):
 		var gm = get_node("/root/GameManager")
+		# Score label defaults
+		if score_label:
+			score_label.text = "SCORE: %d" % int(gm.score) if ("score" in gm) else "SCORE: 0"
+			if gm.has_signal("score_changed"):
+				var c_score := Callable(self, "_on_score_changed")
+				if not gm.is_connected("score_changed", c_score):
+					gm.score_changed.connect(c_score)
 		if gm.player_reference:
 			_connect_player(gm.player_reference)
 
@@ -81,6 +89,14 @@ func _ready():
 	set_process(true)
 	if loadout_label:
 		loadout_label.visible = false
+	if score_label:
+		score_label.visible = true
+
+
+func _on_score_changed(total_score: int) -> void:
+	if score_label == null:
+		return
+	score_label.text = "SCORE: %d" % int(maxi(0, total_score))
 
 var _player_connected = false
 var _item_indicator_nodes: Dictionary = {} # instance_id -> Control

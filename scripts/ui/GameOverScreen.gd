@@ -1,5 +1,7 @@
 extends CanvasLayer
 
+@onready var score_label: Label = $Control/VBoxContainer/ScoreLabel
+
 func _ready():
 	visible = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -9,6 +11,10 @@ func _ready():
 
 func _on_game_over():
 	visible = true
+	if score_label and has_node("/root/GameManager"):
+		var gm = get_node("/root/GameManager")
+		if gm and ("score" in gm):
+			score_label.text = "SCORE: %d" % int(gm.score)
 	get_tree().paused = true
 
 func _on_restart_pressed():

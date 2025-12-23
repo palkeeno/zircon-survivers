@@ -14,6 +14,10 @@ signal boss_requested(boss_index)
 signal miniboss_spawned
 signal boss_spawned
 
+# Score (coins)
+signal score_changed(total_score)
+var score: int = 0
+
 enum GameState {
 	MENU,
 	PLAYING,
@@ -54,7 +58,15 @@ func reset_game():
 	current_state = GameState.PLAYING
 	# Reload scene handles most reset, but we might need to reset autoload state if any.
 	player_reference = null
+	score = 0
+	emit_signal("score_changed", score)
 	_reset_run_timer()
+
+func add_score(amount: int) -> void:
+	if amount <= 0:
+		return
+	score += int(amount)
+	emit_signal("score_changed", score)
 
 func _reset_run_timer():
 	run_time_sec = 0.0

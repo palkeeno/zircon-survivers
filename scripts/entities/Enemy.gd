@@ -145,6 +145,10 @@ func apply_knockback(impulse: Vector2) -> void:
 @export var xp_value: int = 1
 @export var xp_gem_scene: PackedScene
 
+@export var coin_scene: PackedScene = preload("res://scenes/objects/Coin.tscn")
+@export var coin_drop_chance: float = 0.05 # 5% per kill
+@export var boss_coin_drop_count: int = 10
+
 @export var drop_item_scene: PackedScene = preload("res://scenes/objects/DropItem.tscn")
 
 @export var item_drop_chance: float = 0.005 # 0.5% per kill
@@ -174,6 +178,7 @@ func die():
 	var drop_parent: Node = get_parent()
 	var drop_pos: Vector2 = global_position
 	call_deferred("_drop_xp_at", drop_parent, drop_pos)
+	call_deferred("_drop_coins_at", drop_parent, drop_pos)
 	call_deferred("_drop_items_at", drop_parent, drop_pos)
 
 	# Return to pool instead of queue_free
@@ -194,6 +199,47 @@ func _drop_xp_at(parent_node: Node, pos: Vector2) -> void:
 				gem.spawn(pos, xp_value)
 			else:
 				gem.global_position = pos
+
+func _drop_coins_at(parent_node: Node, pos: Vector2) -> void:
+	if parent_node == null or not is_instance_valid(parent_node):
+		return
+	if coin_scene == null:
+		return
+
+	# Boss drops many coins.
+	if is_boss:
+		var count := maxi(1, boss_coin_drop_count)
+		for _i in range(count):
+			_spawn_coin(parent_node, pos)
+		return
+
+	# Normal / miniboss: chance-based single coin.
+	if randf() <= clampf(coin_drop_chance, 0.0, 1.0):
+		_spawn_coin(parent_node, pos)
+		return
+
+func _spawn_coin(parent_node: Node, pos: Vector2) -> void:
+	var coin = null
+	if has_node("/root/PoolManager"):
+		coin = get_node("/root/PoolManager").get_instance(coin_scene)
+	else:
+		coin = coin_scene.instantiate()
+		if coin:
+			parent_node.add_child(coin)
+
+	if coin == null:
+		return
+	if coin.get_parent() != parent_node:
+		coin.reparent(parent_node)
+
+	# Small scatter so stacks are visible.
+	var ang := randf() * TAU
+	var rad := randf_range(0.0, 26.0)
+	var p := pos + Vector2.RIGHT.rotated(ang) * rad
+	if coin.has_method("spawn"):
+		coin.spawn(p, 1)
+	else:
+		coin.global_position = p
 
 func _drop_items_at(parent_node: Node, pos: Vector2) -> void:
 	if parent_node == null or not is_instance_valid(parent_node):
