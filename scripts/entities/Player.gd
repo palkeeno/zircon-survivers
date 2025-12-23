@@ -265,6 +265,8 @@ func _bootstrap_existing_weapon_nodes():
 			_register_weapon_node(child, "weapon_holy_aura")
 		elif child.name == "TargetedStrike":
 			_register_weapon_node(child, "weapon_targeted_strike")
+		elif child.name == "OrbitBoomerang":
+			_register_weapon_node(child, "weapon_orbit_boomerang")
 
 
 func _register_weapon_node(node: Node, ability_id: String):
@@ -448,7 +450,7 @@ func _apply_holy_aura_upgrade(w: Node, upgrade_id: String, stacks: int):
 
 	match upgrade_id:
 		"radius_up":
-			w.aura_radius = base_radius * pow(1.08, stacks)
+			w.aura_radius = base_radius * pow(1.12, stacks)
 		_:
 			pass
 
