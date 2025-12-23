@@ -992,8 +992,12 @@ func do_knockback_pulse(radius: float, power: float):
 		if dist2 > r2:
 			continue
 		var dir = (enemy.global_position - global_position).normalized()
-		# Simple push-back. Enemy AI overwrites velocity, so we shift position directly.
-		enemy.global_position += dir * (12.0 * power)
+		# Prefer velocity-based knockback to avoid fighting physics.
+		if enemy.has_method("apply_knockback"):
+			enemy.call("apply_knockback", dir * (720.0 * power))
+		else:
+			# Fallback (older enemies)
+			enemy.global_position += dir * (12.0 * power)
 
 
 func do_nova(radius: float, dmg: float):

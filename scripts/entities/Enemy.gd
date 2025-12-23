@@ -1,7 +1,7 @@
 extends CharacterBody2D
 class_name Enemy
 
-@export var auto_collision_from_alpha: bool = true
+@export var auto_collision_from_alpha: bool = false
 @export var alpha_collision_threshold: float = 0.2
 @export var alpha_collision_simplify: float = 6.0
 
@@ -23,6 +23,9 @@ var _target: Node2D = null
 
 var _hp_bar: ProgressBar = null
 var _damage_numbers: Node2D = null
+
+var _knockback_velocity: Vector2 = Vector2.ZERO
+@export var knockback_drag: float = 900.0
 
 func _ready():
 	if auto_collision_from_alpha:
@@ -102,6 +105,7 @@ func spawn(pos: Vector2):
 	global_position = pos
 	current_hp = hp
 	_is_dead = false
+	_knockback_velocity = Vector2.ZERO
 	_clear_damage_numbers()
 	_update_hp_bar()
 	
@@ -110,11 +114,13 @@ func spawn(pos: Vector2):
 	
 	# Reset stats if modified (e.g. hp)
 	
-func _physics_process(_delta):
+func _physics_process(delta):
 	# Simple tracking AI
 	if _target and is_instance_valid(_target):
 		var direction = global_position.direction_to(_target.global_position)
-		velocity = direction * speed
+		if _knockback_velocity != Vector2.ZERO:
+			_knockback_velocity = _knockback_velocity.move_toward(Vector2.ZERO, knockback_drag * max(0.0, delta))
+		velocity = (direction * speed) + _knockback_velocity
 		move_and_slide()
 	
 	# Despawn if too far (optional, for safety)
@@ -131,6 +137,10 @@ func take_damage(amount: float):
 	_update_hp_bar()
 	if current_hp <= 0.0:
 		die()
+
+
+func apply_knockback(impulse: Vector2) -> void:
+	_knockback_velocity += impulse
 
 @export var xp_value: int = 1
 @export var xp_gem_scene: PackedScene
