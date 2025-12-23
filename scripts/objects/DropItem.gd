@@ -7,6 +7,7 @@ class_name DropItem
 
 var _base_collision_layer: int = 0
 var _base_collision_mask: int = 0
+var _is_despawning: bool = false
 
 func _ready() -> void:
 	add_to_group("loot")
@@ -18,6 +19,7 @@ func _ready() -> void:
 func spawn(pos: Vector2, kind: String) -> void:
 	global_position = pos
 	item_kind = kind
+	_is_despawning = false
 	monitoring = true
 	monitorable = true
 	collision_layer = _base_collision_layer
@@ -76,14 +78,22 @@ func _update_visuals() -> void:
 	_icon_label.text = get_emoji()
 
 func _despawn() -> void:
+	if _is_despawning:
+		return
+	_is_despawning = true
+
 	# Prevent repeat pickup while returning to pool.
-	monitoring = false
-	monitorable = false
-	collision_layer = 0
-	collision_mask = 0
+	set_deferred("monitoring", false)
+	set_deferred("monitorable", false)
+	set_deferred("collision_layer", 0)
+	set_deferred("collision_mask", 0)
 	var cs: CollisionShape2D = get_node_or_null("CollisionShape2D")
 	if cs:
-		cs.disabled = true
+		cs.set_deferred("disabled", true)
+	call_deferred("_finish_despawn")
+
+
+func _finish_despawn() -> void:
 	if has_node("/root/PoolManager"):
 		get_node("/root/PoolManager").return_instance(self, scene_file_path)
 	else:
