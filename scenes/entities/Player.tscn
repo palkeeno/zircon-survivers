@@ -1,18 +1,64 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/entities/Player.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/MagicWand.tscn" id="3_wand"]
-[ext_resource type="Script" path="res://csharp/Loadout/LoadoutManager.cs" id="4_loadout"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-1.png" id="2_frame_1"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-2.png" id="3_frame_2"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-3.png" id="4_frame_3"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-4.png" id="5_frame_4"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-5.png" id="6_frame_5"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-6.png" id="7_frame_6"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-7.png" id="8_frame_7"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-8.png" id="9_frame_8"]
+[ext_resource type="Texture2D" path="res://assets/characters/izumi_frame-9.png" id="10_frame_9"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/MagicWand.tscn" id="11_wand"]
+[ext_resource type="Script" path="res://csharp/Loadout/LoadoutManager.cs" id="12_loadout"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
-radius = 60.0
+radius = 30.0
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_1"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_frame_1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_frame_2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_frame_3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_frame_4")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_frame_5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_frame_6")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_frame_7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_frame_8")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_frame_9")
+}],
+"loop": true,
+"name": &"default",
+"speed": 10.0
+}]
 
 [node name="Player" type="CharacterBody2D"]
 script = ExtResource("1_script")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("2_icon")
+[node name="Sprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_1")
+animation = &"default"
+playing = true
+scale = Vector2(0.5, 0.5)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_1")
@@ -20,8 +66,8 @@ shape = SubResource("CircleShape2D_1")
 [node name="Camera2D" type="Camera2D" parent="."]
 position_smoothing_enabled = true
 
-[node name="MagicWand" parent="." instance=ExtResource("3_wand")]
+[node name="MagicWand" parent="." instance=ExtResource("11_wand")]
 
 [node name="LoadoutManager" type="Node" parent="."]
-script = ExtResource("4_loadout")
+script = ExtResource("12_loadout")
 

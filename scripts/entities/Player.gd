@@ -45,7 +45,233 @@ var _joystick : Control
 
 var _aim_dir: Vector2 = Vector2.RIGHT
 
+@export var auto_collision_from_alpha: bool = true
+@export var alpha_collision_threshold: float = 0.2
+@export var alpha_collision_cell_size: int = 8
+@export var alpha_collision_max_rects: int = 24
+
+func _compute_visual_radius_from_sprite(sprite: AnimatedSprite2D) -> float:
+	if not sprite:
+		return 30.0
+	var frames: SpriteFrames = sprite.sprite_frames
+	if not frames:
+		return 30.0
+
+	var anim: StringName = sprite.animation
+	if anim == StringName():
+		anim = &"default"
+	if not frames.has_animation(anim):
+		anim = &"default"
+	if not frames.has_animation(anim):
+		return 30.0
+
+	var frame_count: int = frames.get_frame_count(anim)
+	if frame_count <= 0:
+		return 30.0
+
+	var max_dim: float = 0.0
+	for i in range(frame_count):
+		var tex: Texture2D = frames.get_frame_texture(anim, i)
+		if tex:
+			var s: Vector2i = tex.get_size()
+			max_dim = max(max_dim, float(max(s.x, s.y)))
+
+	if max_dim <= 0.0:
+		return 30.0
+
+	var scale_mult: float = maxf(absf(sprite.scale.x), absf(sprite.scale.y))
+	return (max_dim * 0.5) * scale_mult
+
+
+func _get_frame1_texture(sprite: AnimatedSprite2D) -> Texture2D:
+	if sprite == null:
+		return null
+	var frames: SpriteFrames = sprite.sprite_frames
+	if frames == null:
+		return null
+	var anim: StringName = sprite.animation
+	if anim == StringName():
+		anim = &"default"
+	if not frames.has_animation(anim):
+		anim = &"default"
+	if not frames.has_animation(anim):
+		return null
+	if frames.get_frame_count(anim) <= 0:
+		return null
+	return frames.get_frame_texture(anim, 0)
+
+
+func _build_rects_from_alpha(img: Image, cell_size: int, threshold: float) -> Array[Rect2]:
+	# Returns rectangles in pixel space (top-left origin) before centering.
+	var rects: Array[Rect2] = []
+	if img == null:
+		return rects
+	if cell_size <= 0:
+		cell_size = 8
+
+	var w: int = img.get_width()
+	var h: int = img.get_height()
+	if w <= 0 or h <= 0:
+		return rects
+
+	var gw: int = int(ceil(float(w) / float(cell_size)))
+	var gh: int = int(ceil(float(h) / float(cell_size)))
+
+	# Build occupancy grid
+	var occ: Array = []
+	occ.resize(gh)
+	for y in range(gh):
+		var row: PackedByteArray = PackedByteArray()
+		row.resize(gw)
+		for x in range(gw):
+			row[x] = 0
+		occ[y] = row
+
+	for gy in range(gh):
+		var py0: int = gy * cell_size
+		var py1: int = min(h, py0 + cell_size)
+		for gx in range(gw):
+			var px0: int = gx * cell_size
+			var px1: int = min(w, px0 + cell_size)
+			var filled: bool = false
+			# Sample a few points for speed (corners + center-ish)
+			var sx0: int = px0
+			var sx1: int = px1 - 1
+			var sy0: int = py0
+			var sy1: int = py1 - 1
+			var sxm: int = int((float(px0) + float(px1)) * 0.5)
+			var sym: int = int((float(py0) + float(py1)) * 0.5)
+			var samples: Array[Vector2i] = [
+				Vector2i(sx0, sy0), Vector2i(sx1, sy0), Vector2i(sx0, sy1), Vector2i(sx1, sy1),
+				Vector2i(sxm, sym),
+			]
+			for s in samples:
+				var c: Color = img.get_pixelv(s)
+				if c.a >= threshold:
+					filled = true
+					break
+			if filled:
+				(occ[gy] as PackedByteArray)[gx] = 1
+
+	# Merge occupied cells into rectangles (run-length per row + vertical merge)
+	var active: Dictionary = {} # key "x0:x1" -> Rect2 in grid coords
+	for gy in range(gh):
+		var row: PackedByteArray = occ[gy]
+		var segments: Array = []
+		var x: int = 0
+		while x < gw:
+			while x < gw and row[x] == 0:
+				x += 1
+			if x >= gw:
+				break
+			var x0: int = x
+			while x < gw and row[x] == 1:
+				x += 1
+			var x1: int = x
+			segments.append([x0, x1])
+
+		var next_active: Dictionary = {}
+		for seg in segments:
+			var sx0i: int = seg[0]
+			var sx1i: int = seg[1]
+			var key: String = "%d:%d" % [sx0i, sx1i]
+			if active.has(key):
+				var r: Rect2 = active[key]
+				r.size.y += 1.0
+				next_active[key] = r
+			else:
+				next_active[key] = Rect2(Vector2(sx0i, gy), Vector2(sx1i - sx0i, 1))
+
+		# Finalize rectangles that didn't continue
+		for k in active.keys():
+			if not next_active.has(k):
+				rects.append(active[k])
+		active = next_active
+
+	# Finalize remaining
+	for k in active.keys():
+		rects.append(active[k])
+
+	# Convert from grid coords to pixel coords
+	var pixel_rects: Array[Rect2] = []
+	for r in rects:
+		var px: float = r.position.x * float(cell_size)
+		var py: float = r.position.y * float(cell_size)
+		var pw: float = r.size.x * float(cell_size)
+		var ph: float = r.size.y * float(cell_size)
+		pixel_rects.append(Rect2(px, py, pw, ph))
+	return pixel_rects
+
+
+func _apply_rect_colliders(parent_node: Node, rects: Array[Rect2], img_size: Vector2i, sprite_scale: Vector2, max_rects: int) -> int:
+	# Adds RectangleShape2D CollisionShape2D nodes under `parent_node`.
+	# Rects are in pixel coords (top-left origin). Converts to centered local coords.
+	if parent_node == null:
+		return 0
+	var created: int = 0
+	var half: Vector2 = Vector2(img_size) * 0.5
+	var limit: int = max_rects
+	if limit <= 0:
+		limit = 24
+
+	# Remove old auto-colliders
+	for child in parent_node.get_children():
+		if child is CollisionShape2D and (child as Node).name.begins_with("AutoCollision_"):
+			child.queue_free()
+
+	# Prefer larger rectangles first
+	rects.sort_custom(func(a: Rect2, b: Rect2) -> bool: return a.size.x * a.size.y > b.size.x * b.size.y)
+
+	for r in rects:
+		if created >= limit:
+			break
+		if r.size.x <= 0.0 or r.size.y <= 0.0:
+			continue
+		var center_px: Vector2 = r.position + (r.size * 0.5)
+		var local_center: Vector2 = (center_px - half) * sprite_scale
+		var extents: Vector2 = (r.size * 0.5) * Vector2(absf(sprite_scale.x), absf(sprite_scale.y))
+		if extents.x <= 0.5 or extents.y <= 0.5:
+			continue
+
+		var shape: RectangleShape2D = RectangleShape2D.new()
+		shape.size = extents * 2.0
+		var cs: CollisionShape2D = CollisionShape2D.new()
+		cs.name = "AutoCollision_%d" % created
+		cs.position = local_center
+		cs.shape = shape
+		parent_node.add_child(cs)
+		created += 1
+
+	return created
+
+
+func _build_player_collision_from_alpha(sprite: AnimatedSprite2D, player_collider: CollisionShape2D, hurtbox: Area2D, hurtbox_circle: CollisionShape2D) -> void:
+	var tex: Texture2D = _get_frame1_texture(sprite)
+	if tex == null:
+		return
+	var img: Image = tex.get_image()
+	if img == null:
+		return
+
+	var rects: Array[Rect2] = _build_rects_from_alpha(img, alpha_collision_cell_size, alpha_collision_threshold)
+	if rects.is_empty():
+		return
+
+	var created_player: int = _apply_rect_colliders(self, rects, img.get_size(), sprite.scale, alpha_collision_max_rects)
+	var created_hurt: int = 0
+	if hurtbox != null:
+		created_hurt = _apply_rect_colliders(hurtbox, rects, img.get_size(), sprite.scale, alpha_collision_max_rects)
+
+	if created_player > 0 and player_collider != null:
+		player_collider.disabled = true
+	if created_hurt > 0 and hurtbox_circle != null:
+		hurtbox_circle.disabled = true
+
 func _ready():
+	var sprite_node: Node = get_node_or_null("Sprite2D")
+	if sprite_node and sprite_node is AnimatedSprite2D:
+		(sprite_node as AnimatedSprite2D).play(&"default")
+
 	_base_speed = speed
 	_base_max_hp = max_hp
 	_base_pickup_range = pickup_range
@@ -74,7 +300,8 @@ func _ready():
 	
 	var hurt_shape = CollisionShape2D.new()
 	hurt_shape.shape = CircleShape2D.new()
-	hurt_shape.shape.radius = 61.0
+	# Radius will be synced to the player visual size below.
+	hurt_shape.shape.radius = 30.0
 	hurtbox.add_child(hurt_shape)
 	
 	hurtbox.body_entered.connect(_on_hurtbox_body_entered)
@@ -94,6 +321,21 @@ func _ready():
 	
 	# XPGem is an Area2D, so we use area_entered, not body_entered
 	_magnet_area.area_entered.connect(_on_magnet_area_entered)
+
+	# Build a coarse rectangle-based collider from frame-1 alpha.
+	# This is computed once and reused while the sprite keeps animating.
+	if auto_collision_from_alpha and sprite_node and sprite_node is AnimatedSprite2D:
+		var player_cs: CollisionShape2D = get_node_or_null("CollisionShape2D")
+		_build_player_collision_from_alpha(sprite_node as AnimatedSprite2D, player_cs, hurtbox, hurt_shape)
+	else:
+		# Sync circle colliders to the current player visual size.
+		if sprite_node and sprite_node is AnimatedSprite2D:
+			var r: float = _compute_visual_radius_from_sprite(sprite_node as AnimatedSprite2D)
+			var player_cs2: CollisionShape2D = get_node_or_null("CollisionShape2D")
+			if player_cs2 and player_cs2.shape is CircleShape2D:
+				(player_cs2.shape as CircleShape2D).radius = r
+			if hurt_shape.shape is CircleShape2D:
+				(hurt_shape.shape as CircleShape2D).radius = r
 
 	# Listen to Game Paused signal to check for sequential level ups
 	if has_node("/root/GameManager"):

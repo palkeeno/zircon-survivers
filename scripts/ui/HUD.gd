@@ -308,7 +308,7 @@ func _on_loadout_changed():
 
 func _format_time(time_sec: float) -> String:
 	var total := maxi(0, int(floor(time_sec)))
-	var minutes := total / 60
+	var minutes := int(total / 60.0)
 	var seconds := total % 60
 	return "%02d:%02d" % [minutes, seconds]
 

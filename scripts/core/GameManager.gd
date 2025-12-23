@@ -112,3 +112,11 @@ func resume_game():
 		current_state = GameState.PLAYING
 		get_tree().paused = false
 		emit_signal("game_paused", false)
+
+
+# Call these from whatever system actually spawns the miniboss/boss (e.g. Spawner).
+func notify_miniboss_spawned() -> void:
+	emit_signal("miniboss_spawned")
+
+func notify_boss_spawned() -> void:
+	emit_signal("boss_spawned")

@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/objects/XPGem.tscn" id="3_gem"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
-radius = 20.0
+radius = 15.0
 
 [node name="Enemy" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 4
@@ -16,7 +16,7 @@ xp_gem_scene = ExtResource("3_gem")
 xp_value = 5
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.5, 0.5)
+scale = Vector2(0.375, 0.375)
 texture = ExtResource("2_enemy")
 centered = true
 

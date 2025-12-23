@@ -1,6 +1,12 @@
 extends CharacterBody2D
 class_name Enemy
 
+@export var auto_collision_from_alpha: bool = true
+@export var alpha_collision_threshold: float = 0.2
+@export var alpha_collision_simplify: float = 6.0
+
+static var _alpha_hull_cache: Dictionary = {}
+
 @export var speed: float = 100.0
 @export var damage: float = 10.0
 @export var hp: float = 10.0 # Treated as Max HP
@@ -19,7 +25,78 @@ var _hp_bar: ProgressBar = null
 var _damage_numbers: Node2D = null
 
 func _ready():
+	if auto_collision_from_alpha:
+		_build_collision_from_sprite_alpha()
 	_ensure_overhead_ui()
+
+
+func _build_collision_from_sprite_alpha() -> void:
+	var sprite: Sprite2D = get_node_or_null("Sprite2D")
+	if sprite == null:
+		return
+	var tex: Texture2D = sprite.texture
+	if tex == null:
+		return
+
+	var tex_path: String = ""
+	if "resource_path" in tex:
+		tex_path = str(tex.resource_path)
+	var cache_key: String = "%s|thr=%.3f|simp=%.3f" % [tex_path, alpha_collision_threshold, alpha_collision_simplify]
+	var centered_hull: PackedVector2Array
+	if _alpha_hull_cache.has(cache_key):
+		centered_hull = _alpha_hull_cache[cache_key]
+	else:
+		var img: Image = tex.get_image()
+		if img == null:
+			return
+
+		var bitmap: BitMap = BitMap.new()
+		bitmap.create_from_image_alpha(img, alpha_collision_threshold)
+
+		var rect: Rect2i = Rect2i(Vector2i.ZERO, img.get_size())
+		var polys: Array[PackedVector2Array] = bitmap.opaque_to_polygons(rect, alpha_collision_simplify)
+		if polys.is_empty():
+			return
+
+		var half: Vector2 = Vector2(img.get_size()) * 0.5
+		var all_points: PackedVector2Array = PackedVector2Array()
+		for poly in polys:
+			if poly.size() < 3:
+				continue
+			for p in poly:
+				all_points.append(p - half)
+
+		if all_points.size() < 3:
+			return
+
+		centered_hull = Geometry2D.convex_hull(all_points)
+		if centered_hull.size() < 3:
+			return
+		_alpha_hull_cache[cache_key] = centered_hull
+
+	# Remove old generated shapes (if any)
+	for child in get_children():
+		if child is CollisionShape2D and (child as Node).name.begins_with("AutoCollision_"):
+			child.queue_free()
+
+	# Create one convex collider from the hull (much lighter than many triangles).
+	var scale_mult: Vector2 = sprite.scale
+	var scaled_hull: PackedVector2Array = PackedVector2Array()
+	scaled_hull.resize(centered_hull.size())
+	for i in range(centered_hull.size()):
+		scaled_hull[i] = centered_hull[i] * scale_mult
+
+	var shape := ConvexPolygonShape2D.new()
+	shape.points = scaled_hull
+	var cs := CollisionShape2D.new()
+	cs.name = "AutoCollision_0"
+	cs.shape = shape
+	add_child(cs)
+
+	# Disable fallback collider if we successfully generated polygons.
+	var fallback: CollisionShape2D = get_node_or_null("CollisionShape2D")
+	if fallback:
+		fallback.disabled = true
 
 func spawn(pos: Vector2):
 	global_position = pos
