@@ -151,9 +151,12 @@ public partial class LoadoutManager : Node
                 ["target_id"] = offer.TargetAbilityId,
                 ["name"] = def.Name,
                 ["desc"] = isUpgrade ? $"Upgrade (random): {def.Description}" : def.Description,
+                ["desc_full"] = def.Description,
                 ["is_upgrade"] = isUpgrade,
                 ["special_kind"] = def.SpecialKind?.ToString() ?? "",
                 ["icon_path"] = def.IconPath ?? "",
+                ["weapon_scene_path"] = def.WeaponScenePath ?? "",
+                ["base_cooldown_sec"] = def.BaseCooldownSec,
             });
         }
 

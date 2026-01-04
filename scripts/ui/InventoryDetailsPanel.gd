@@ -41,6 +41,105 @@ func hide_details() -> void:
 	if details_stats:
 		details_stats.text = ""
 
+
+func show_offer_details(offer: Dictionary) -> void:
+	# Public API for LevelUpScreen: show details for an offer without applying it.
+	if details_popup == null or details_name == null or details_level == null or details_stats == null:
+		return
+
+	var offer_name := str(offer.get("name", ""))
+	details_name.text = offer_name
+
+	var slot_kind := str(offer.get("slot_kind", ""))
+	var action := str(offer.get("action", ""))
+	var header := ""
+	if slot_kind != "" and action != "":
+		header = "%s / %s" % [slot_kind, action]
+	elif slot_kind != "":
+		header = slot_kind
+	elif action != "":
+		header = action
+	details_level.text = header
+
+	var desc := str(offer.get("desc_full", ""))
+	if desc == "":
+		desc = str(offer.get("desc", ""))
+
+	var lines: Array[String] = []
+	if desc != "":
+		lines.append("[b]説明[/b]\n%s" % desc)
+
+	# Meta info (weapon stats, cooldown, etc.)
+	if slot_kind == "Weapon":
+		var scene_path := str(offer.get("weapon_scene_path", ""))
+		var stats_text := _get_weapon_scene_stats_text(scene_path)
+		if stats_text != "":
+			lines.append("[b]能力値[/b]\n%s" % stats_text)
+	else:
+		var base_cd := float(offer.get("base_cooldown_sec", 0.0))
+		if base_cd > 0.0:
+			lines.append("クールダウン: %.2fs" % base_cd)
+
+	details_stats.text = "\n\n".join(lines)
+	details_popup.visible = true
+	call_deferred("_update_details_popup_layout")
+
+
+func _get_weapon_scene_stats_text(scene_path: String) -> String:
+	if scene_path == "":
+		return ""
+	var ps: PackedScene = load(scene_path)
+	if ps == null:
+		return ""
+	var w: Node = ps.instantiate()
+	if w == null:
+		return ""
+
+	var out: Array[String] = []
+	out.append(_fmt_if_has(w, "damage", "威力"))
+	if "cooldown" in w:
+		out.append("攻撃間隔: %.2fs" % float(w.cooldown))
+	out.append(_fmt_if_has(w, "shots_per_fire", "発射数"))
+	out.append(_fmt_if_has(w, "projectile_scale", "弾サイズ"))
+	out.append(_fmt_if_has(w, "projectile_pierce", "貫通"))
+	out.append(_fmt_if_has(w, "projectile_explosion_radius", "爆発半径"))
+	# Some weapons have their own motion params
+	out.append(_fmt_if_has(w, "angular_speed", "回転速度"))
+	out.append(_fmt_if_has(w, "orbit_rotation_speed", "軌道回転"))
+	out.append(_fmt_if_has(w, "width", "幅"))
+	out.append(_fmt_if_has(w, "reach", "射程"))
+	out.append(_fmt_if_has(w, "aura_radius", "半径"))
+	out.append(_fmt_if_has(w, "strike_radius", "半径"))
+	out.append(_fmt_if_has(w, "strikes_per_fire", "対象数"))
+	out.append(_fmt_if_has(w, "nova_radius", "半径"))
+	out.append(_fmt_if_has(w, "chain_range", "連鎖距離"))
+	out.append(_fmt_if_has(w, "max_jumps", "連鎖回数"))
+	out.append(_fmt_if_has(w, "boomerang_count", "数"))
+	out.append(_fmt_if_has(w, "tick_interval", "ヒット間隔"))
+	out.append(_fmt_if_has(w, "burn_radius", "半径"))
+	out.append(_fmt_if_has(w, "burn_duration", "持続"))
+	out.append(_fmt_if_has(w, "slashes_per_fire", "斬撃数"))
+	out.append(_fmt_if_has(w, "claw_radius", "半径"))
+
+	# Projectile meta (e.g., bullet speed)
+	if "projectile_scene" in w:
+		var proj_scene = w.get("projectile_scene")
+		if proj_scene is PackedScene:
+			var p: Node = (proj_scene as PackedScene).instantiate()
+			if p != null:
+				out.append(_fmt_if_has(p, "speed", "弾速"))
+				out.append(_fmt_if_has(p, "life_time", "射程(秒)"))
+				p.free()
+
+	# remove empties
+	var filtered: Array[String] = []
+	for s in out:
+		if s != "":
+			filtered.append(s)
+
+	w.free()
+	return "\n".join(filtered)
+
 func _add_item_button(item: Dictionary) -> void:
 	var btn := Button.new()
 	btn.custom_minimum_size = icon_size
