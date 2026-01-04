@@ -42,13 +42,19 @@ func _ready():
 		if time_label:
 			_timer_default_modulate = time_label.modulate
 			_timer_default_scale = time_label.scale
-			time_label.text = _format_time(0.0)
-			# Reflect current GM time if present
-			if "run_time_sec" in gm:
-				time_label.text = _format_time(float(gm.run_time_sec))
+			# Countdown display (prefer GM time_left; fall back to elapsed)
+			var initial_time: float = 0.0
+			if "max_run_time_sec" in gm and "run_time_sec" in gm:
+				initial_time = maxf(0.0, float(gm.max_run_time_sec) - float(gm.run_time_sec))
+			time_label.text = _format_time(initial_time)
 
 		# Subscribe to GM time and boss/miniboss events
-		if gm.has_signal("run_time_changed"):
+		# Prefer countdown if available.
+		if gm.has_signal("time_left_changed"):
+			var c_left := Callable(self, "_on_time_left_changed")
+			if not gm.is_connected("time_left_changed", c_left):
+				gm.time_left_changed.connect(c_left)
+		elif gm.has_signal("run_time_changed"):
 			var c := Callable(self, "_on_run_time_changed")
 			if not gm.is_connected("run_time_changed", c):
 				gm.run_time_changed.connect(c)
@@ -387,7 +393,13 @@ func _format_time(time_sec: float) -> String:
 func _on_run_time_changed(time_sec: float) -> void:
 	if time_label == null:
 		return
+	# Legacy: show elapsed.
 	time_label.text = _format_time(time_sec)
+
+func _on_time_left_changed(time_left_sec: float) -> void:
+	if time_label == null:
+		return
+	time_label.text = _format_time(time_left_sec)
 
 
 func _on_miniboss_spawned() -> void:

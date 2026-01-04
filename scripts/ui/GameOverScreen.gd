@@ -1,5 +1,6 @@
 extends CanvasLayer
 
+@onready var title_label: Label = $Control/VBoxContainer/Label
 @onready var score_label: Label = $Control/VBoxContainer/ScoreLabel
 @onready var back_to_start_button: Button = $Control/VBoxContainer/BackToStartButton
 
@@ -11,7 +12,11 @@ func _ready():
 		get_node("/root/Localization").language_changed.connect(_on_language_changed)
 	
 	if has_node("/root/GameManager"):
-		get_node("/root/GameManager").game_over.connect(_on_game_over)
+		var gm = get_node("/root/GameManager")
+		if gm.has_signal("game_ended"):
+			gm.game_ended.connect(_on_game_ended)
+		else:
+			gm.game_over.connect(_on_game_over)
 
 func _apply_language_to_ui() -> void:
 	var loc := get_node("/root/Localization") if has_node("/root/Localization") else null
@@ -22,12 +27,20 @@ func _on_language_changed(_lang_code: String) -> void:
 	_apply_language_to_ui()
 
 func _on_game_over():
+	# Legacy fallback
+	if title_label:
+		title_label.text = "GAME OVER"
 	visible = true
 	if score_label and has_node("/root/GameManager"):
 		var gm = get_node("/root/GameManager")
 		if gm and ("score" in gm):
 			score_label.text = "SCORE: %d" % int(gm.score)
 	get_tree().paused = true
+
+func _on_game_ended(is_clear: bool, _reason: String) -> void:
+	if title_label:
+		title_label.text = "CLEAR" if is_clear else "GAME OVER"
+	_on_game_over()
 
 func _on_restart_pressed():
 	if has_node("/root/GameManager"):
