@@ -16,6 +16,11 @@ var _player: Node = null
 func _ready() -> void:
 	if close_button:
 		close_button.pressed.connect(func(): hide_details())
+	if has_node("/root/Localization"):
+		get_node("/root/Localization").language_changed.connect(func(_lang):
+			refresh()
+			hide_details()
+		)
 	rebuild()
 
 func rebuild() -> void:
@@ -48,7 +53,12 @@ func show_offer_details(offer: Dictionary) -> void:
 		return
 
 	var offer_name := str(offer.get("name", ""))
-	details_name.text = offer_name
+	var ability_id := str(offer.get("target_id", offer.get("id", "")))
+	var loc := get_node("/root/Localization") if has_node("/root/Localization") else null
+	if loc and ability_id != "":
+		details_name.text = str(loc.ability_name(ability_id, offer_name))
+	else:
+		details_name.text = offer_name
 
 	var slot_kind := str(offer.get("slot_kind", ""))
 	var action := str(offer.get("action", ""))
@@ -64,21 +74,26 @@ func show_offer_details(offer: Dictionary) -> void:
 	var desc := str(offer.get("desc_full", ""))
 	if desc == "":
 		desc = str(offer.get("desc", ""))
+	if loc and ability_id != "":
+		desc = str(loc.ability_desc_full(ability_id, desc))
 
 	var lines: Array[String] = []
 	if desc != "":
-		lines.append("[b]説明[/b]\n%s" % desc)
+		var label_desc := str(loc.t("ui.description", "説明")) if loc else "説明"
+		lines.append("[b]%s[/b]\n%s" % [label_desc, desc])
 
 	# Meta info (weapon stats, cooldown, etc.)
 	if slot_kind == "Weapon":
 		var scene_path := str(offer.get("weapon_scene_path", ""))
 		var stats_text := _get_weapon_scene_stats_text(scene_path)
 		if stats_text != "":
-			lines.append("[b]能力値[/b]\n%s" % stats_text)
+			var label_stats := str(loc.t("ui.stats", "能力値")) if loc else "能力値"
+			lines.append("[b]%s[/b]\n%s" % [label_stats, stats_text])
 	else:
 		var base_cd := float(offer.get("base_cooldown_sec", 0.0))
 		if base_cd > 0.0:
-			lines.append("クールダウン: %.2fs" % base_cd)
+			var label_cd := str(loc.t("ui.cooldown", "クールダウン")) if loc else "クールダウン"
+			lines.append("%s: %.2fs" % [label_cd, base_cd])
 
 	details_stats.text = "\n\n".join(lines)
 	details_popup.visible = true
@@ -185,22 +200,32 @@ func _add_item_button(item: Dictionary) -> void:
 func _show_details(item: Dictionary) -> void:
 	if not details_popup:
 		return
-
-	details_name.text = str(item.get("name", ""))
+	var ability_id := str(item.get("id", ""))
+	var loc := get_node("/root/Localization") if has_node("/root/Localization") else null
+	var fallback_name := str(item.get("name", ""))
+	if loc and ability_id != "":
+		details_name.text = str(loc.ability_name(ability_id, fallback_name))
+	else:
+		details_name.text = fallback_name
 	details_level.text = "Lv%d" % int(item.get("level", 1))
 
 	var lines: Array[String] = []
 	var desc := str(item.get("description", ""))
+	if loc and ability_id != "":
+		desc = str(loc.ability_desc_full(ability_id, desc))
 	if desc != "":
-		lines.append("[b]説明[/b]\n%s" % desc)
+		var label_desc := str(loc.t("ui.description", "説明")) if loc else "説明"
+		lines.append("[b]%s[/b]\n%s" % [label_desc, desc])
 
 	var slot_kind := str(item.get("slot_kind", ""))
 	if slot_kind == "Weapon":
-		lines.append("[b]能力値[/b]\n%s" % _get_weapon_stats_text(str(item.get("id", ""))))
+		var label_stats := str(loc.t("ui.stats", "能力値")) if loc else "能力値"
+		lines.append("[b]%s[/b]\n%s" % [label_stats, _get_weapon_stats_text(str(item.get("id", "")))])
 	else:
 		var base_cd := float(item.get("base_cooldown_sec", 0.0))
 		if base_cd > 0.0:
-			lines.append("クールダウン: %.2fs" % base_cd)
+			var label_cd := str(loc.t("ui.cooldown", "クールダウン")) if loc else "クールダウン"
+			lines.append("%s: %.2fs" % [label_cd, base_cd])
 
 	var upgrades: Array = item.get("upgrades", [])
 	var up_lines: Array[String] = []
@@ -211,7 +236,8 @@ func _show_details(item: Dictionary) -> void:
 		var uname := str(u.get("name", u.get("id", "")))
 		up_lines.append("%s x%d" % [uname, stacks])
 	if not up_lines.is_empty():
-		lines.append("[b]強化[/b]\n%s" % "\n".join(up_lines))
+		var label_up := str(loc.t("ui.upgrades", "強化")) if loc else "強化"
+		lines.append("[b]%s[/b]\n%s" % [label_up, "\n".join(up_lines)])
 
 	details_stats.text = "\n\n".join(lines)
 	details_popup.visible = true
