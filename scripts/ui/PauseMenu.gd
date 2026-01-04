@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 @onready var resume_button: Button = $Control/Panel/MarginContainer/VBox/ResumeButton
+@onready var back_to_start_button: Button = $Control/Panel/MarginContainer/VBox/BackToStartButton
 @onready var inventory_panel: Control = $Control/Panel/MarginContainer/VBox/InventoryDetailsPanel
 @onready var lang_label: Label = $Control/Panel/MarginContainer/VBox/LangRow/LangLabel
 @onready var lang_option: OptionButton = $Control/Panel/MarginContainer/VBox/LangRow/LangOption
@@ -12,6 +13,8 @@ func _ready() -> void:
 	visible = false
 	if resume_button:
 		resume_button.pressed.connect(_on_resume_pressed)
+	if back_to_start_button:
+		back_to_start_button.pressed.connect(_on_back_to_start_pressed)
 	_setup_language_ui()
 	_apply_language_to_ui()
 	if has_node("/root/Localization"):
@@ -37,6 +40,8 @@ func _apply_language_to_ui() -> void:
 	var loc := get_node("/root/Localization") if has_node("/root/Localization") else null
 	if resume_button and loc:
 		resume_button.text = str(loc.t("ui.resume", resume_button.text))
+	if back_to_start_button and loc:
+		back_to_start_button.text = str(loc.t("ui.back_to_start", back_to_start_button.text))
 	if lang_label and loc:
 		lang_label.text = str(loc.t("ui.language", lang_label.text))
 
@@ -62,6 +67,16 @@ func _on_resume_pressed() -> void:
 	if has_node("/root/GameManager"):
 		get_node("/root/GameManager").resume_game()
 	close()
+
+
+func _on_back_to_start_pressed() -> void:
+	if has_node("/root/GameManager"):
+		var gm = get_node("/root/GameManager")
+		if gm.has_method("return_to_menu"):
+			gm.return_to_menu()
+	get_tree().paused = false
+	close()
+	get_tree().change_scene_to_file("res://scenes/ui/StartScreen.tscn")
 
 
 func _on_lang_selected(index: int) -> void:

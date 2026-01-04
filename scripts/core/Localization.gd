@@ -13,6 +13,10 @@ const UI_TEXT := {
 		LANG_JA: "ゲーム再開",
 		LANG_EN: "Resume",
 	},
+	"ui.back_to_start": {
+		LANG_JA: "スタートに戻る",
+		LANG_EN: "Back to Start",
+	},
 	"ui.language": {
 		LANG_JA: "言語",
 		LANG_EN: "Language",

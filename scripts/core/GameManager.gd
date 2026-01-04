@@ -26,7 +26,7 @@ enum GameState {
 	LEVEL_UP
 }
 
-var current_state: GameState = GameState.PLAYING
+var current_state: GameState = GameState.MENU
 var player_reference: Node2D = null
 
 # Run timer (seconds since run started). Only advances in PLAYING.
@@ -61,6 +61,17 @@ func reset_game():
 	score = 0
 	emit_signal("score_changed", score)
 	_reset_run_timer()
+
+func return_to_menu() -> void:
+	# Used when leaving a run back to the start screen.
+	current_state = GameState.MENU
+	player_reference = null
+	score = 0
+	emit_signal("score_changed", score)
+	_reset_run_timer()
+	get_tree().paused = false
+	# Notify listeners that we're not paused anymore (helps HUD close menus cleanly).
+	emit_signal("game_paused", false)
 
 func add_score(amount: int) -> void:
 	if amount <= 0:

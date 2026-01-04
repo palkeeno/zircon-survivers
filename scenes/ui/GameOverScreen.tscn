@@ -55,4 +55,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "RESTART"
 
+[node name="BackToStartButton" type="Button" parent="Control/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "スタートに戻る"
+
 [connection signal="pressed" from="Control/VBoxContainer/RestartButton" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="Control/VBoxContainer/BackToStartButton" to="." method="_on_back_to_start_pressed"]

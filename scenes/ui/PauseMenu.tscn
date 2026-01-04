@@ -60,6 +60,10 @@ theme_override_constants/separation = 12
 layout_mode = 2
 text = "ゲーム再開"
 
+[node name="BackToStartButton" type="Button" parent="Control/Panel/MarginContainer/VBox"]
+layout_mode = 2
+text = "スタートに戻る"
+
 [node name="LangRow" type="HBoxContainer" parent="Control/Panel/MarginContainer/VBox"]
 layout_mode = 2
 

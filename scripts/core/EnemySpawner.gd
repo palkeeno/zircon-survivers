@@ -111,6 +111,13 @@ func _update_wave(time_sec: float) -> void:
 		get_node("/root/PoolManager").create_pool(_active_enemy_scene, int(selected.pool_size))
 
 func _on_spawn_timer_timeout():
+	# Only spawn while actively playing.
+	if has_node("/root/GameManager"):
+		var gm = get_node("/root/GameManager")
+		if ("current_state" in gm) and ("GameState" in gm):
+			if gm.current_state != gm.GameState.PLAYING:
+				return
+
 	# Priority: scheduled bosses
 	if _try_spawn_scheduled_bosses():
 		return
