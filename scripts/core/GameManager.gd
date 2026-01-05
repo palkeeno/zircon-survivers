@@ -24,6 +24,13 @@ var score: int = 0
 signal enemies_killed_changed(total_killed)
 var enemies_killed: int = 0
 
+# 持ち帰り率（EndType別）
+const CARRY_OVER_RATE := {
+	0: 0.0,   # FAILED - 0%
+	1: 1.0,   # TIME_UP - 100%
+	2: 0.7,   # ESCAPED - 70%
+}
+
 # Run summary container (kept here to avoid missing type errors)
 class GameRunResult extends RefCounted:
 	enum EndType {
@@ -36,7 +43,9 @@ class GameRunResult extends RefCounted:
 	var run_time_sec: float
 	var final_level: int
 	var enemies_killed: int
-	var carry_over_resources: Dictionary
+	var carry_over_resources: Dictionary  # ラン中に獲得した生のジルコイン
+	var carried_zircoin: int  # 実際に持ち帰ったジルコイン（率適用後）
+	var carry_over_rate: float  # 適用された持ち帰り率
 	var final_build: Array
 
 	static func create(
@@ -45,6 +54,8 @@ class GameRunResult extends RefCounted:
 		p_final_level: int,
 		p_enemies_killed: int,
 		p_carry_over_resources: Dictionary,
+		p_carried_zircoin: int,
+		p_carry_over_rate: float,
 		p_final_build: Array
 	) -> GameRunResult:
 		var r := GameRunResult.new()
@@ -53,8 +64,14 @@ class GameRunResult extends RefCounted:
 		r.final_level = p_final_level
 		r.enemies_killed = p_enemies_killed
 		r.carry_over_resources = p_carry_over_resources
+		r.carried_zircoin = p_carried_zircoin
+		r.carry_over_rate = p_carry_over_rate
 		r.final_build = p_final_build
 		return r
+	
+	## 持ち帰り率を%表示用に取得
+	func get_carry_over_rate_percent() -> int:
+		return int(carry_over_rate * 100)
 
 	## end_type に対応する表示名を返す
 	func get_end_type_name() -> String:
@@ -143,12 +160,18 @@ func build_run_result(end_type: GameRunResult.EndType) -> GameRunResult:
 		"zircoin": score
 	}
 	
+	# 持ち帰り率を適用
+	var rate: float = CARRY_OVER_RATE.get(int(end_type), 0.0)
+	var carried := int(float(score) * rate)
+	
 	return GameRunResult.create(
 		end_type,
 		run_time_sec,
 		final_level,
 		enemies_killed,
 		carry_over,
+		carried,
+		rate,
 		final_build
 	)
 
@@ -179,13 +202,20 @@ func _trigger_game_end(is_clear: bool, reason: String) -> void:
 	# RunResult を生成
 	var end_type: GameRunResult.EndType
 	if is_clear:
-		if reason == "escaped":
+		if reason == "escaped" or reason == "stairs":
 			end_type = GameRunResult.EndType.ESCAPED
 		else:
 			end_type = GameRunResult.EndType.TIME_UP
 	else:
 		end_type = GameRunResult.EndType.FAILED
 	last_run_result = build_run_result(end_type)
+	
+	# 持ち帰りジルコインをセーブ
+	if last_run_result.carried_zircoin > 0:
+		if has_node("/root/SaveDataManager"):
+			var save_mgr = get_node("/root/SaveDataManager")
+			save_mgr.add_zircoin(last_run_result.carried_zircoin)
+			print("GameManager: Saved %d zircoin (rate: %d%%)" % [last_run_result.carried_zircoin, last_run_result.get_carry_over_rate_percent()])
 	
 	emit_signal("game_ended", last_end_is_clear, last_end_reason)
 	# Backwards-compatible: existing UI listens to game_over.

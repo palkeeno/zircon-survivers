@@ -9,6 +9,7 @@ extends CanvasLayer
 @onready var level_value: Label = %LevelValue
 @onready var kills_value: Label = %KillsValue
 @onready var zircoin_value: Label = %ZircoinValue
+@onready var zircoin_rate_label: Label = %ZircoinRateLabel  # 持ち帰り率表示用
 @onready var weapons_row: HBoxContainer = %WeaponsRow
 @onready var specials_row: HBoxContainer = %SpecialsRow
 @onready var retry_button: Button = %RetryButton
@@ -67,6 +68,14 @@ func _show_result(result) -> void:
 	visible = true
 	get_tree().paused = true
 	
+	# リトライボタンを非表示（スタート画面を経由させる）
+	if retry_button:
+		retry_button.visible = false
+	
+	# メニューボタンにフォーカス
+	if menu_button:
+		menu_button.grab_focus()
+	
 	# 背景色を end_type に応じて変更
 	if background_rect:
 		background_rect.color = result.get_theme_color()
@@ -85,8 +94,16 @@ func _show_result(result) -> void:
 	if kills_value:
 		kills_value.text = str(result.enemies_killed)
 	
-	# ジルコインのカウントアップ演出
-	_target_zircoin = result.carry_over_resources.get("zircoin", 0)
+	# 持ち帰り率表示（0%の場合は「持ち帰れない」を強調）
+	var rate_percent: int = result.get_carry_over_rate_percent()
+	if zircoin_rate_label:
+		if rate_percent == 0:
+			zircoin_rate_label.text = "（持ち帰り不可）"
+		else:
+			zircoin_rate_label.text = "（持ち帰り率: %d%%）" % rate_percent
+	
+	# ジルコインのカウントアップ演出（持ち帰った実際の量を表示）
+	_target_zircoin = result.carried_zircoin
 	_current_zircoin_display = 0
 	if zircoin_value:
 		zircoin_value.text = "+ 0"

@@ -134,6 +134,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "+ 0"
 
+[node name="ZircoinRateLabel" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/ResourcesSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+text = "（持ち帰り率: 100%）"
+
 [node name="VSeparator" type="VSeparator" parent="Control/MainContainer/ContentColumns"]
 layout_mode = 2
 theme_override_constants/separation = 8

@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 Localization="*res://scripts/core/Localization.gd"
 GameManager="*res://scripts/core/GameManager.gd"
 PoolManager="*res://scripts/core/ObjectPool.gd"
+SaveDataManager="*res://scripts/core/SaveDataManager.gd"
 
 [dotnet]
 
