@@ -195,7 +195,10 @@ func _on_restart_pressed():
 		_countup_tween.kill()
 	
 	if has_node("/root/GameManager"):
-		get_node("/root/GameManager").reset_game()
+		var gm = get_node("/root/GameManager")
+		gm.reset_game()
+		if gm.has_method("start_game"):
+			gm.start_game()
 
 	get_tree().paused = false
 	get_tree().reload_current_scene()

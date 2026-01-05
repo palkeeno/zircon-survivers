@@ -9,7 +9,11 @@ class_name MapGenerator
 
 @export var stairs_scene: PackedScene = preload("res://scenes/objects/Stairs.tscn")
 
-@export var player_path: NodePath = NodePath("../Player")
+## プレイヤーシーン（これを使ってマップ生成後にスポーン）
+@export var player_scene: PackedScene = preload("res://scenes/entities/Player.tscn")
+
+## ジョイスティックへのパス（プレイヤーに設定する）
+@export var joystick_path: NodePath = NodePath("../CanvasLayer/VirtualJoystick")
 
 # Field generation tuning
 @export var field_area_multiplier: float = 9.0
@@ -22,12 +26,13 @@ class_name MapGenerator
 var _tiles: Node2D
 var _obstacles: Node2D
 var _walls: Node2D
-var _player: Node2D
+var _player: Node2D = null
+var _player_spawn_pos: Vector2 = Vector2.ZERO  # マップ生成後に決定されるスポーン位置
 var _tile_nodes_by_cell: Dictionary = {} # Vector2i -> Node
 var _field_cells: Dictionary = {} # Vector2i -> true
 var _blocked_cells: Dictionary = {} # Vector2i -> true (unwalkable inside field)
-var _spawn_cell: Vector2i = Vector2i.ZERO
-var _stairs_cell: Vector2i = Vector2i.ZERO
+var _spawn_cell: Vector2i = Vector2i(999999, 999999)  # 無効値で初期化
+var _stairs_cell: Vector2i = Vector2i(999999, 999999)  # 無効値で初期化
 var _rng := RandomNumberGenerator.new()
 
 func _ready():
@@ -48,13 +53,15 @@ func _ready():
 	_walls.z_index = -10
 	add_child(_walls)
 
-	_player = _resolve_player()
+	# マップ生成（プレイヤーはまだスポーンしない）
 	_generate_field_once()
 	set_process(false)
+	
+	# マップ生成完了後、プレイヤーをスポーン
+	call_deferred("_spawn_player_at_valid_position")
 
 func _generate_field_once() -> void:
 	_clear_generated_nodes()
-	_player = _resolve_player()
 
 	var vp := get_viewport()
 	var screen_size := Vector2(1280, 720)
@@ -74,8 +81,9 @@ func _generate_field_once() -> void:
 		_field_cells.clear()
 		_blocked_cells.clear()
 
-		var bb_w := maxi(10, int(round(sqrt(float(target_field_tiles) * screen_aspect))))
-		var bb_h := maxi(10, int(ceil(float(target_field_tiles) / maxf(1.0, float(bb_w)))))
+		# バウンディングボックスを少し大きめに（余裕を持たせる）
+		var bb_w := maxi(10, int(round(sqrt(float(target_field_tiles) * screen_aspect) * 1.15)))
+		var bb_h := maxi(10, int(ceil(float(target_field_tiles) / maxf(1.0, float(bb_w)) * 1.15)))
 		# Clamp extreme aspect
 		var ratio := float(bb_w) / maxf(1.0, float(bb_h))
 		if ratio < field_aspect_min:
@@ -98,16 +106,68 @@ func _generate_field_once() -> void:
 		if _stairs_cell == Vector2i(999999, 999999):
 			continue
 
-		# Success
+		# Success - マップ構築（プレイヤーはまだスポーンしない）
 		_build_visuals_and_collisions()
-		_position_player_at_spawn()
 		_spawn_stairs()
+		_log_map_info()
 		return
 
 	# Fallback: build whatever we last generated
+	push_error("MapGenerator: All %d generation attempts failed! Using fallback." % [attempts])
+	
+	# 無効なセル値の場合はフォールバックセルを設定
+	if _spawn_cell == Vector2i(999999, 999999):
+		# フィールドセルから最初の1つを選択
+		if not _field_cells.is_empty():
+			_spawn_cell = _field_cells.keys()[0]
+		else:
+			_spawn_cell = Vector2i.ZERO
+	
+	# 階段セルも確認
+	if _stairs_cell == Vector2i(999999, 999999):
+		# spawn_cellと異なるセルを探す
+		for k in _field_cells.keys():
+			if k != _spawn_cell and not _blocked_cells.has(k):
+				_stairs_cell = k
+				break
+		# それでも見つからない場合
+		if _stairs_cell == Vector2i(999999, 999999):
+			push_error("MapGenerator: Cannot find valid stairs cell even in fallback!")
+			# 少なくともspawn_cellから1セル離れた位置
+			_stairs_cell = _spawn_cell + Vector2i(1, 0)
+	
 	_build_visuals_and_collisions()
-	_position_player_at_spawn()
 	_spawn_stairs()
+	_log_map_info()
+
+
+func _log_map_info() -> void:
+	var offset := -_spawn_cell
+	# マップの4隅を計算
+	var min_x := 999999
+	var max_x := -999999
+	var min_y := 999999
+	var max_y := -999999
+	for k in _field_cells.keys():
+		var local_cell: Vector2i = k
+		var world_cell := local_cell + offset
+		min_x = mini(min_x, world_cell.x)
+		max_x = maxi(max_x, world_cell.x)
+		min_y = mini(min_y, world_cell.y)
+		max_y = maxi(max_y, world_cell.y)
+	
+	var corner_tl := _cell_to_local_center(Vector2i(min_x, min_y))
+	var corner_tr := _cell_to_local_center(Vector2i(max_x, min_y))
+	var corner_bl := _cell_to_local_center(Vector2i(min_x, max_y))
+	var corner_br := _cell_to_local_center(Vector2i(max_x, max_y))
+	
+	var stairs_world_cell := _stairs_cell + offset
+	var stairs_pos := _cell_to_local_center(stairs_world_cell)
+	
+	print("MapGenerator: Map generated")
+	print("  - _spawn_cell (local)=", _spawn_cell, ", offset=", offset)
+	print("  - Map corners: TL=", corner_tl, ", TR=", corner_tr, ", BL=", corner_bl, ", BR=", corner_br)
+	print("  - Stairs cell (local)=", _stairs_cell, ", world_cell=", stairs_world_cell, ", pos=", stairs_pos)
 
 func _clear_generated_nodes() -> void:
 	for c in _tiles.get_children():
@@ -120,9 +180,12 @@ func _clear_generated_nodes() -> void:
 
 func _generate_connected_blob(target_count: int, bb_w: int, bb_h: int) -> bool:
 	# Cells are generated in local grid coords [0..bb_w-1, 0..bb_h-1]
-	if target_count > bb_w * bb_h:
-		return false
+	var max_possible := bb_w * bb_h
+	if target_count > max_possible:
+		# ターゲットがBBサイズを超える場合、90%を目標にする
+		target_count = int(float(max_possible) * 0.9)
 	var center := Vector2i(int(floor(float(bb_w) * 0.5)), int(floor(float(bb_h) * 0.5)))
+	print("[MapGenerator] _generate_connected_blob: target=%d, bb_w=%d, bb_h=%d, center=%s, max_possible=%d" % [target_count, bb_w, bb_h, center, max_possible])
 	_field_cells[center] = true
 	var cells: Array[Vector2i] = [center]
 	var dirs := [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]
@@ -148,10 +211,15 @@ func _generate_connected_blob(target_count: int, bb_w: int, bb_h: int) -> bool:
 		_field_cells[n] = true
 		cells.append(n)
 
-	return cells.size() >= target_count
+	# 80%以上達成で成功とする
+	var success := cells.size() >= int(float(target_count) * 0.8)
+	if not success:
+		print("[MapGenerator] _generate_connected_blob: FAILED - only generated %d/%d cells" % [cells.size(), target_count])
+	return success
 
 func _pick_spawn_cell_near_center(bb_w: int, bb_h: int) -> Vector2i:
 	var center := Vector2i(int(floor(float(bb_w) * 0.5)), int(floor(float(bb_h) * 0.5)))
+	print("[MapGenerator] _pick_spawn_cell_near_center: bb_w=%d, bb_h=%d, center=%s, has_center=%s" % [bb_w, bb_h, center, _field_cells.has(center)])
 	if _field_cells.has(center):
 		return center
 	# Find closest field cell to center
@@ -163,6 +231,7 @@ func _pick_spawn_cell_near_center(bb_w: int, bb_h: int) -> Vector2i:
 		if d < best_d:
 			best_d = d
 			best = c
+	print("[MapGenerator] _pick_spawn_cell_near_center: fallback best=%s" % [best])
 	return best
 
 func _generate_obstacles_preserving_connectivity(spawn_cell: Vector2i) -> void:
@@ -229,6 +298,8 @@ func _is_walkable_connected(from_cell: Vector2i) -> bool:
 func _pick_stairs_cell(spawn_cell: Vector2i) -> Vector2i:
 	var min_d2 := float(maxi(0, stairs_min_distance_tiles))
 	min_d2 = min_d2 * min_d2
+	print("[MapGenerator] _pick_stairs_cell: spawn_cell=%s, stairs_min_distance_tiles=%d, min_d2=%s" % [spawn_cell, stairs_min_distance_tiles, min_d2])
+	print("[MapGenerator] _pick_stairs_cell: _field_cells.size()=%d, _blocked_cells.size()=%d" % [_field_cells.size(), _blocked_cells.size()])
 	var candidates: Array[Vector2i] = []
 	for k in _field_cells.keys():
 		var c: Vector2i = k
@@ -240,9 +311,24 @@ func _pick_stairs_cell(spawn_cell: Vector2i) -> Vector2i:
 		if d2 < min_d2:
 			continue
 		candidates.append(c)
+	print("[MapGenerator] _pick_stairs_cell: candidates with min_distance=%d" % [candidates.size()])
 	if candidates.is_empty():
+		# 最低距離の条件を緩和して再試行（ただしspawn_cellは除外）
+		push_warning("MapGenerator: No stairs candidates with min distance, relaxing constraint")
+		for k in _field_cells.keys():
+			var c: Vector2i = k
+			if c == spawn_cell:
+				continue
+			if _blocked_cells.has(c):
+				continue
+			candidates.append(c)
+		print("[MapGenerator] _pick_stairs_cell: candidates relaxed=%d" % [candidates.size()])
+	if candidates.is_empty():
+		push_error("MapGenerator: No valid stairs cell found!")
 		return Vector2i(999999, 999999)
-	return candidates[_rng.randi_range(0, candidates.size() - 1)]
+	var chosen := candidates[_rng.randi_range(0, candidates.size() - 1)]
+	print("[MapGenerator] _pick_stairs_cell: chosen=%s" % [chosen])
+	return chosen
 
 func _build_visuals_and_collisions() -> void:
 	# Place tiles centered around (0,0) by shifting local grid coords.
@@ -322,16 +408,152 @@ func _spawn_obstacle(world_cell: Vector2i) -> void:
 	sprite.modulate = Color(0.25, 0.25, 0.25, 1)
 	body.add_child(sprite)
 
-func _position_player_at_spawn() -> void:
-	if _player == null:
+
+## マップ生成完了後、通行可能なマスを選んでプレイヤーをスポーン
+func _spawn_player_at_valid_position() -> void:
+	if player_scene == null:
+		push_error("MapGenerator: player_scene is not set!")
 		return
-	# Background is at (0,0); spawn is world origin in our coordinate system.
-	_player.global_position = Vector2.ZERO
+	
+	# プレイヤーは原点(0,0)付近にスポーン（元の_spawn_cellの位置）
+	# 階段から十分離れた位置であることを確認
+	var spawn_pos := _pick_safe_player_spawn_position()
+	
+	# プレイヤーをインスタンス化
+	_player = player_scene.instantiate()
+	if _player == null:
+		push_error("MapGenerator: Failed to instantiate player!")
+		return
+	
+	# ジョイスティックパスを設定
+	if joystick_path != NodePath("") and "joystick_path" in _player:
+		_player.joystick_path = joystick_path
+	
+	# 位置を先に設定してからシーンに追加（add_child前に位置を設定しないと衝突判定が誤動作する）
+	_player.position = spawn_pos
+	_player_spawn_pos = spawn_pos
+	
+	# 親ノードに追加（Mainノードの直下）
+	var parent_node: Node = get_parent()
+	if parent_node == null:
+		parent_node = self
+	parent_node.add_child(_player)
+	
+	# GameManagerに登録
 	if has_node("/root/GameManager"):
 		get_node("/root/GameManager").player_reference = _player
+	
+	print("MapGenerator: Player spawned at ", spawn_pos)
+
+
+## プレイヤーの安全なスポーン位置を選択（原点付近で階段から離れた位置）
+func _pick_safe_player_spawn_position() -> Vector2:
+	# 原点(0,0)が理想的なスポーン位置（_spawn_cellがオフセットされて原点になる設計）
+	var origin := Vector2.ZERO
+	
+	# 階段の位置を計算
+	var offset := -_spawn_cell
+	var stairs_world_cell := _stairs_cell + offset
+	var stairs_pos := _cell_to_local_center(stairs_world_cell)
+	
+	print("[MapGenerator] _pick_safe_player_spawn: _spawn_cell=%s, _stairs_cell=%s, offset=%s" % [_spawn_cell, _stairs_cell, offset])
+	print("[MapGenerator] _pick_safe_player_spawn: stairs_world_cell=%s, stairs_pos=%s" % [stairs_world_cell, stairs_pos])
+	
+	# 階段から最低限離れるべき距離（タイル数 × タイルサイズ）
+	var min_distance_from_stairs := float(stairs_min_distance_tiles) * float(tile_size) * 0.5
+	print("[MapGenerator] _pick_safe_player_spawn: min_distance_from_stairs=%s" % [min_distance_from_stairs])
+	
+	# 原点が階段から十分離れているか確認
+	var dist_origin_to_stairs := origin.distance_to(stairs_pos)
+	print("[MapGenerator] _pick_safe_player_spawn: origin=%s, dist_to_stairs=%s" % [origin, dist_origin_to_stairs])
+	
+	if dist_origin_to_stairs >= min_distance_from_stairs:
+		# 原点が通行可能か確認
+		if is_world_point_walkable(origin):
+			print("[MapGenerator] _pick_safe_player_spawn: using origin (safe)")
+			return origin
+	
+	# 原点が使えない場合、原点に近くて階段から離れた通行可能な位置を探す
+	var best_pos := origin
+	var best_dist_from_origin := INF
+	
+	for k in _field_cells.keys():
+		var local_cell: Vector2i = k
+		if _blocked_cells.has(local_cell):
+			continue
+		var world_cell := local_cell + offset
+		var cell_center := _cell_to_local_center(world_cell)
+		
+		# 階段から十分離れているか
+		var dist_from_stairs := cell_center.distance_to(stairs_pos)
+		if dist_from_stairs < min_distance_from_stairs:
+			continue
+		
+		# 原点からの距離
+		var dist_from_origin := cell_center.distance_to(origin)
+		if dist_from_origin < best_dist_from_origin:
+			best_dist_from_origin = dist_from_origin
+			best_pos = cell_center
+	
+	# それでも見つからない場合は原点を返す（フォールバック）
+	if best_dist_from_origin == INF:
+		push_warning("MapGenerator: Could not find safe spawn position, using origin")
+		return origin
+	
+	return best_pos
+
+
+## 通行可能なマスからランダムに位置を選択（使わなくなったが互換性のため残す）
+func _pick_random_walkable_position() -> Vector2:
+	var offset := -_spawn_cell
+	var walkable_positions: Array[Vector2] = []
+	
+	for k in _field_cells.keys():
+		var local_cell: Vector2i = k
+		if _blocked_cells.has(local_cell):
+			continue
+		var world_cell := local_cell + offset
+		var cell_center := _cell_to_local_center(world_cell)
+		walkable_positions.append(cell_center)
+	
+	if walkable_positions.is_empty():
+		push_warning("MapGenerator: No walkable positions found, using origin")
+		return Vector2.ZERO
+	
+	# ランダムに選択
+	var idx := _rng.randi_range(0, walkable_positions.size() - 1)
+	return walkable_positions[idx]
+
+
+## 指定位置から最も近い通行可能な位置を探す
+func _find_nearest_walkable_position(world_pos: Vector2) -> Vector2:
+	var offset := -_spawn_cell
+	var best_pos := world_pos
+	var best_dist_sq := INF
+	
+	for k in _field_cells.keys():
+		var local_cell: Vector2i = k
+		if _blocked_cells.has(local_cell):
+			continue
+		var world_cell := local_cell + offset
+		var cell_center := _cell_to_local_center(world_cell)
+		var dist_sq := cell_center.distance_squared_to(world_pos)
+		if dist_sq < best_dist_sq:
+			best_dist_sq = dist_sq
+			best_pos = cell_center
+	
+	return best_pos
 
 func _spawn_stairs() -> void:
 	if stairs_scene == null:
+		return
+	# 無効な階段セルの場合はスキップ
+	if _stairs_cell == Vector2i(999999, 999999):
+		push_error("MapGenerator: Cannot spawn stairs - invalid stairs cell!")
+		return
+	# 階段がスポーンセルと同じ場合は警告
+	if _stairs_cell == _spawn_cell:
+		push_error("MapGenerator: Stairs cell is same as spawn cell! This will cause instant game clear!")
 		return
 	# Convert stairs cell from generation coords into world cell (spawn-centered).
 	var offset := -_spawn_cell
@@ -345,10 +567,16 @@ func _deferred_spawn_stairs(stairs_world_cell: Vector2i) -> void:
 	var inst := stairs_scene.instantiate()
 	if inst == null:
 		return
+	
+	# 位置を先に設定してからシーンに追加（add_child前に位置を設定しないと衝突判定が誤動作する）
+	var stairs_pos := _cell_to_local_center(stairs_world_cell)
+	if inst is Node2D:
+		(inst as Node2D).position = stairs_pos
+	
 	var parent_node: Node = get_parent() if get_parent() != null else self
 	parent_node.add_child(inst)
-	if inst is Node2D:
-		(inst as Node2D).global_position = _cell_to_local_center(stairs_world_cell)
+	
+	print("[MapGenerator] Stairs spawned at world_cell=%s, pos=%s" % [stairs_world_cell, stairs_pos])
 
 func is_world_point_walkable(world_pos: Vector2) -> bool:
 	var cell := _world_to_cell(world_pos)
@@ -381,19 +609,6 @@ func get_random_walkable_world_position_near(center_world_pos: Vector2, min_radi
 			return global_transform * _cell_to_local_center(c)
 	# Fallback: center
 	return center_world_pos
-
-func _resolve_player() -> Node2D:
-	if player_path != NodePath(""):
-		var n := get_node_or_null(player_path)
-		if n is Node2D:
-			return n
-
-	# Fallback: find first node in group "player" (optional)
-	var candidates := get_tree().get_nodes_in_group("player")
-	if candidates.size() > 0 and candidates[0] is Node2D:
-		return candidates[0]
-
-	return null
 
 func _generate_initial_area() -> void:
 	# Legacy method kept for compatibility; finite generation does not call this.

@@ -165,6 +165,8 @@ func trigger_game_over():
 	_trigger_game_end(false, "dead")
 
 func trigger_game_clear(reason: String = "clear") -> void:
+	print("GameManager: trigger_game_clear() called with reason=", reason)
+	print("  - run_time_sec=", run_time_sec, ", max_run_time_sec=", max_run_time_sec)
 	_trigger_game_end(true, reason)
 
 func _trigger_game_end(is_clear: bool, reason: String) -> void:
@@ -190,6 +192,8 @@ func _trigger_game_end(is_clear: bool, reason: String) -> void:
 	emit_signal("game_over")
 
 func reset_game():
+	print("GameManager: reset_game() called")
+	print("  - Before: current_state=", current_state, ", run_time_sec=", run_time_sec)
 	current_state = GameState.PLAYING
 	# Reload scene handles most reset, but we might need to reset autoload state if any.
 	player_reference = null
@@ -201,6 +205,7 @@ func reset_game():
 	emit_signal("score_changed", score)
 	emit_signal("enemies_killed_changed", enemies_killed)
 	_reset_run_timer()
+	print("  - After: run_time_sec=", run_time_sec, ", max_run_time_sec=", max_run_time_sec)
 
 func return_to_menu() -> void:
 	# Used when leaving a run back to the start screen.
@@ -272,8 +277,11 @@ func _process(delta: float) -> void:
 				_next_boss_index += 1
 
 func start_game():
+	print("GameManager: start_game() called")
+	print("  - Before: current_state=", current_state, ", run_time_sec=", run_time_sec, ", max_run_time_sec=", max_run_time_sec)
 	current_state = GameState.PLAYING
 	_reset_run_timer()
+	print("  - After reset: run_time_sec=", run_time_sec, ", _last_emitted_second=", _last_emitted_second)
 	emit_signal("game_started")
 	get_tree().paused = false
 

@@ -31,10 +31,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -220.0
-offset_top = -280.0
-offset_right = 220.0
-offset_bottom = 280.0
+offset_left = -320.0
+offset_top = -220.0
+offset_right = 320.0
+offset_bottom = 220.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
@@ -47,23 +47,33 @@ text = "[ RUN RESULT ]"
 horizontal_alignment = 1
 
 [node name="Spacer1" type="Control" parent="Control/MainContainer"]
-custom_minimum_size = Vector2(0, 10)
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 
-[node name="StatsContainer" type="VBoxContainer" parent="Control/MainContainer"]
+[node name="ContentColumns" type="HBoxContainer" parent="Control/MainContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 40
+
+[node name="LeftColumn" type="VBoxContainer" parent="Control/MainContainer/ContentColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="StatsContainer" type="VBoxContainer" parent="Control/MainContainer/ContentColumns/LeftColumn"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="SurvivalTimeRow" type="HBoxContainer" parent="Control/MainContainer/StatsContainer"]
+[node name="SurvivalTimeRow" type="HBoxContainer" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer"]
 layout_mode = 2
 
-[node name="SurvivalTimeTitle" type="Label" parent="Control/MainContainer/StatsContainer/SurvivalTimeRow"]
+[node name="SurvivalTimeTitle" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer/SurvivalTimeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 24
 text = "生存時間"
 
-[node name="SurvivalTimeValue" type="Label" parent="Control/MainContainer/StatsContainer/SurvivalTimeRow"]
+[node name="SurvivalTimeValue" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer/SurvivalTimeRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -71,16 +81,16 @@ theme_override_font_sizes/font_size = 24
 text = "0:00"
 horizontal_alignment = 2
 
-[node name="LevelRow" type="HBoxContainer" parent="Control/MainContainer/StatsContainer"]
+[node name="LevelRow" type="HBoxContainer" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer"]
 layout_mode = 2
 
-[node name="LevelTitle" type="Label" parent="Control/MainContainer/StatsContainer/LevelRow"]
+[node name="LevelTitle" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer/LevelRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 24
 text = "最終LV"
 
-[node name="LevelValue" type="Label" parent="Control/MainContainer/StatsContainer/LevelRow"]
+[node name="LevelValue" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer/LevelRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -88,16 +98,16 @@ theme_override_font_sizes/font_size = 24
 text = "1"
 horizontal_alignment = 2
 
-[node name="KillsRow" type="HBoxContainer" parent="Control/MainContainer/StatsContainer"]
+[node name="KillsRow" type="HBoxContainer" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer"]
 layout_mode = 2
 
-[node name="KillsTitle" type="Label" parent="Control/MainContainer/StatsContainer/KillsRow"]
+[node name="KillsTitle" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer/KillsRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 24
 text = "撃破数"
 
-[node name="KillsValue" type="Label" parent="Control/MainContainer/StatsContainer/KillsRow"]
+[node name="KillsValue" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/StatsContainer/KillsRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -105,55 +115,67 @@ theme_override_font_sizes/font_size = 24
 text = "0"
 horizontal_alignment = 2
 
-[node name="Separator1" type="HSeparator" parent="Control/MainContainer"]
+[node name="Separator1" type="HSeparator" parent="Control/MainContainer/ContentColumns/LeftColumn"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
-[node name="ResourcesSection" type="VBoxContainer" parent="Control/MainContainer"]
+[node name="ResourcesSection" type="VBoxContainer" parent="Control/MainContainer/ContentColumns/LeftColumn"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
-[node name="ResourcesTitle" type="Label" parent="Control/MainContainer/ResourcesSection"]
+[node name="ResourcesTitle" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/ResourcesSection"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "獲得ジルコイン"
-horizontal_alignment = 1
 
-[node name="ZircoinValue" type="Label" parent="Control/MainContainer/ResourcesSection"]
+[node name="ZircoinValue" type="Label" parent="Control/MainContainer/ContentColumns/LeftColumn/ResourcesSection"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "+ 0"
-horizontal_alignment = 1
 
-[node name="Separator2" type="HSeparator" parent="Control/MainContainer"]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="BuildSection" type="VBoxContainer" parent="Control/MainContainer"]
+[node name="VSeparator" type="VSeparator" parent="Control/MainContainer/ContentColumns"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BuildTitle" type="Label" parent="Control/MainContainer/BuildSection"]
+[node name="RightColumn" type="VBoxContainer" parent="Control/MainContainer/ContentColumns"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="BuildTitle" type="Label" parent="Control/MainContainer/ContentColumns/RightColumn"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "FINAL BUILD"
 horizontal_alignment = 1
 
-[node name="WeaponsRow" type="HBoxContainer" parent="Control/MainContainer/BuildSection"]
+[node name="WeaponsLabel" type="Label" parent="Control/MainContainer/ContentColumns/RightColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+text = "Weapons"
+horizontal_alignment = 1
+
+[node name="WeaponsRow" type="HBoxContainer" parent="Control/MainContainer/ContentColumns/RightColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
 
-[node name="SpecialsRow" type="HBoxContainer" parent="Control/MainContainer/BuildSection"]
+[node name="SpecialsLabel" type="Label" parent="Control/MainContainer/ContentColumns/RightColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+text = "Specials"
+horizontal_alignment = 1
+
+[node name="SpecialsRow" type="HBoxContainer" parent="Control/MainContainer/ContentColumns/RightColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
 
 [node name="Spacer2" type="Control" parent="Control/MainContainer"]
-custom_minimum_size = Vector2(0, 20)
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
-size_flags_vertical = 3
 
 [node name="ButtonsContainer" type="HBoxContainer" parent="Control/MainContainer"]
 layout_mode = 2

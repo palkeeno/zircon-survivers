@@ -6,6 +6,7 @@ extends Area2D
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	print("Stairs: _ready() at position=", global_position)
 
 func _on_body_entered(body: Node) -> void:
 	if body == null or not is_instance_valid(body):
@@ -13,6 +14,7 @@ func _on_body_entered(body: Node) -> void:
 	# Player is a CharacterBody2D; we keep this flexible.
 	if body.name != "Player" and not body.is_in_group("player"):
 		return
+	print("Stairs: Player entered! Player pos=", body.global_position, ", Stairs pos=", global_position)
 	if has_node("/root/GameManager"):
 		var gm = get_node("/root/GameManager")
 		if gm and gm.has_method("trigger_game_clear"):
