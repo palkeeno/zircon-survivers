@@ -239,6 +239,18 @@ func _spawn_instance(scene: PackedScene, pos: Vector2) -> bool:
 	return true
 
 func _get_random_spawn_position(center: Vector2) -> Vector2:
+	# Prefer spawning inside finite generated field if available.
+	var field := _get_field_generator()
+	if field != null and field.has_method("get_random_walkable_world_position_near"):
+		return field.call("get_random_walkable_world_position_near", center, spawn_radius_min, spawn_radius_max)
+
 	var angle = randf() * TAU
 	var distance = randf_range(spawn_radius_min, spawn_radius_max)
 	return center + Vector2(cos(angle), sin(angle)) * distance
+
+func _get_field_generator() -> Node:
+	# MapGenerator registers itself to group "field".
+	var nodes := get_tree().get_nodes_in_group("field")
+	if nodes.size() <= 0:
+		return null
+	return nodes[0]

@@ -30,6 +30,9 @@ func _on_game_over():
 	# Legacy fallback
 	if title_label:
 		title_label.text = "GAME OVER"
+	_show_end_screen()
+
+func _show_end_screen() -> void:
 	visible = true
 	if score_label and has_node("/root/GameManager"):
 		var gm = get_node("/root/GameManager")
@@ -40,7 +43,7 @@ func _on_game_over():
 func _on_game_ended(is_clear: bool, _reason: String) -> void:
 	if title_label:
 		title_label.text = "CLEAR" if is_clear else "GAME OVER"
-	_on_game_over()
+	_show_end_screen()
 
 func _on_restart_pressed():
 	if has_node("/root/GameManager"):
