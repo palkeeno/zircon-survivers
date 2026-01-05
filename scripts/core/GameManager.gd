@@ -20,6 +20,75 @@ signal boss_spawned
 signal score_changed(total_score)
 var score: int = 0
 
+# Kill count
+signal enemies_killed_changed(total_killed)
+var enemies_killed: int = 0
+
+# Run summary container (kept here to avoid missing type errors)
+class GameRunResult extends RefCounted:
+	enum EndType {
+		FAILED,    ## プレイヤー死亡
+		TIME_UP,   ## 制限時間到達（サバイバル成功）
+		ESCAPED,   ## 脱出成功（将来用）
+	}
+
+	var end_type: EndType
+	var run_time_sec: float
+	var final_level: int
+	var enemies_killed: int
+	var carry_over_resources: Dictionary
+	var final_build: Array
+
+	static func create(
+		p_end_type: EndType,
+		p_run_time_sec: float,
+		p_final_level: int,
+		p_enemies_killed: int,
+		p_carry_over_resources: Dictionary,
+		p_final_build: Array
+	) -> GameRunResult:
+		var r := GameRunResult.new()
+		r.end_type = p_end_type
+		r.run_time_sec = p_run_time_sec
+		r.final_level = p_final_level
+		r.enemies_killed = p_enemies_killed
+		r.carry_over_resources = p_carry_over_resources
+		r.final_build = p_final_build
+		return r
+
+	## end_type に対応する表示名を返す
+	func get_end_type_name() -> String:
+		match end_type:
+			EndType.FAILED:
+				return "GAME OVER"
+			EndType.TIME_UP:
+				return "TIME UP - SURVIVED!"
+			EndType.ESCAPED:
+				return "ESCAPED!"
+			_:
+				return "RUN RESULT"
+
+	## end_type に対応するテーマカラーを返す
+	func get_theme_color() -> Color:
+		match end_type:
+			EndType.FAILED:
+				return Color(0.8, 0.2, 0.2, 0.85)  # 赤
+			EndType.TIME_UP:
+				return Color(0.2, 0.7, 0.3, 0.85)  # 緑
+			EndType.ESCAPED:
+				return Color(0.2, 0.4, 0.8, 0.85)  # 青
+			_:
+				return Color(0.3, 0.3, 0.3, 0.85)
+
+	## 生存時間を "分:秒" 形式でフォーマット
+	func format_survival_time() -> String:
+		var minutes := int(run_time_sec / 60.0)
+		var seconds := int(run_time_sec) % 60
+		return "%d:%02d" % [minutes, seconds]
+
+# Last run result (populated on game end)
+var last_run_result: GameRunResult = null
+
 enum GameState {
 	MENU,
 	PLAYING,
@@ -48,6 +117,42 @@ var _next_miniboss_minute: int = 1
 var _next_boss_index: int = 1
 
 
+## 敵撃破時に呼び出す
+func add_enemy_kill(count: int = 1) -> void:
+	if count <= 0:
+		return
+	enemies_killed += count
+	emit_signal("enemies_killed_changed", enemies_killed)
+
+
+## 現在のラン結果を生成
+func build_run_result(end_type: GameRunResult.EndType) -> GameRunResult:
+	var final_level := 1
+	var final_build: Array = [[], []]
+	
+	if player_reference and is_instance_valid(player_reference):
+		if "level" in player_reference:
+			final_level = int(player_reference.level)
+		# LoadoutManager から最終ビルドを取得
+		var loadout_mgr = player_reference.get_node_or_null("LoadoutManager")
+		if loadout_mgr and loadout_mgr.has_method("GetLoadoutSummary"):
+			final_build = loadout_mgr.GetLoadoutSummary()
+	
+	# 持ち帰りリソース（現在はジルコインのみ）
+	var carry_over := {
+		"zircoin": score
+	}
+	
+	return GameRunResult.create(
+		end_type,
+		run_time_sec,
+		final_level,
+		enemies_killed,
+		carry_over,
+		final_build
+	)
+
+
 func trigger_level_up_choice():
 	# Don't pause physics completely, but maybe stop Spawner?
 	# Classic survivor pauses everything.
@@ -68,6 +173,18 @@ func _trigger_game_end(is_clear: bool, reason: String) -> void:
 	last_end_is_clear = is_clear
 	last_end_reason = str(reason)
 	current_state = GameState.GAME_OVER
+	
+	# RunResult を生成
+	var end_type: GameRunResult.EndType
+	if is_clear:
+		if reason == "escaped":
+			end_type = GameRunResult.EndType.ESCAPED
+		else:
+			end_type = GameRunResult.EndType.TIME_UP
+	else:
+		end_type = GameRunResult.EndType.FAILED
+	last_run_result = build_run_result(end_type)
+	
 	emit_signal("game_ended", last_end_is_clear, last_end_reason)
 	# Backwards-compatible: existing UI listens to game_over.
 	emit_signal("game_over")
@@ -77,9 +194,12 @@ func reset_game():
 	# Reload scene handles most reset, but we might need to reset autoload state if any.
 	player_reference = null
 	score = 0
+	enemies_killed = 0
 	last_end_is_clear = false
 	last_end_reason = ""
+	last_run_result = null
 	emit_signal("score_changed", score)
+	emit_signal("enemies_killed_changed", enemies_killed)
 	_reset_run_timer()
 
 func return_to_menu() -> void:
@@ -87,9 +207,12 @@ func return_to_menu() -> void:
 	current_state = GameState.MENU
 	player_reference = null
 	score = 0
+	enemies_killed = 0
 	last_end_is_clear = false
 	last_end_reason = ""
+	last_run_result = null
 	emit_signal("score_changed", score)
+	emit_signal("enemies_killed_changed", enemies_killed)
 	_reset_run_timer()
 	get_tree().paused = false
 	# Notify listeners that we're not paused anymore (helps HUD close menus cleanly).

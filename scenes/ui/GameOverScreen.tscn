@@ -14,51 +14,165 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ColorRect" type="ColorRect" parent="Control"]
+[node name="BackgroundRect" type="ColorRect" parent="Control"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.2, 0, 0, 0.784314)
+color = Color(0.2, 0, 0, 0.85)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Control"]
+[node name="MainContainer" type="VBoxContainer" parent="Control"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = -120.0
-offset_right = 150.0
-offset_bottom = 120.0
+offset_left = -220.0
+offset_top = -280.0
+offset_right = 220.0
+offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="Control/MainContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 42
+text = "[ RUN RESULT ]"
+horizontal_alignment = 1
+
+[node name="Spacer1" type="Control" parent="Control/MainContainer"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="StatsContainer" type="VBoxContainer" parent="Control/MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SurvivalTimeRow" type="HBoxContainer" parent="Control/MainContainer/StatsContainer"]
+layout_mode = 2
+
+[node name="SurvivalTimeTitle" type="Label" parent="Control/MainContainer/StatsContainer/SurvivalTimeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "生存時間"
+
+[node name="SurvivalTimeValue" type="Label" parent="Control/MainContainer/StatsContainer/SurvivalTimeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "0:00"
+horizontal_alignment = 2
+
+[node name="LevelRow" type="HBoxContainer" parent="Control/MainContainer/StatsContainer"]
+layout_mode = 2
+
+[node name="LevelTitle" type="Label" parent="Control/MainContainer/StatsContainer/LevelRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "最終LV"
+
+[node name="LevelValue" type="Label" parent="Control/MainContainer/StatsContainer/LevelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "1"
+horizontal_alignment = 2
+
+[node name="KillsRow" type="HBoxContainer" parent="Control/MainContainer/StatsContainer"]
+layout_mode = 2
+
+[node name="KillsTitle" type="Label" parent="Control/MainContainer/StatsContainer/KillsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "撃破数"
+
+[node name="KillsValue" type="Label" parent="Control/MainContainer/StatsContainer/KillsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "0"
+horizontal_alignment = 2
+
+[node name="Separator1" type="HSeparator" parent="Control/MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ResourcesSection" type="VBoxContainer" parent="Control/MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ResourcesTitle" type="Label" parent="Control/MainContainer/ResourcesSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "獲得ジルコイン"
+horizontal_alignment = 1
+
+[node name="ZircoinValue" type="Label" parent="Control/MainContainer/ResourcesSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "+ 0"
+horizontal_alignment = 1
+
+[node name="Separator2" type="HSeparator" parent="Control/MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BuildSection" type="VBoxContainer" parent="Control/MainContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BuildTitle" type="Label" parent="Control/MainContainer/BuildSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "FINAL BUILD"
+horizontal_alignment = 1
+
+[node name="WeaponsRow" type="HBoxContainer" parent="Control/MainContainer/BuildSection"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+
+[node name="SpecialsRow" type="HBoxContainer" parent="Control/MainContainer/BuildSection"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+
+[node name="Spacer2" type="Control" parent="Control/MainContainer"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="Control/MainContainer"]
+layout_mode = 2
+alignment = 1
 theme_override_constants/separation = 40
 
-[node name="Label" type="Label" parent="Control/VBoxContainer"]
+[node name="RetryButton" type="Button" parent="Control/MainContainer/ButtonsContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 50)
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
-text = "GAME OVER"
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+text = "RETRY"
 
-[node name="ScoreLabel" type="Label" parent="Control/VBoxContainer"]
+[node name="MenuButton" type="Button" parent="Control/MainContainer/ButtonsContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(140, 50)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "SCORE: 0"
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 22
+text = "TO MENU"
 
-[node name="RestartButton" type="Button" parent="Control/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "RESTART"
-
-[node name="BackToStartButton" type="Button" parent="Control/VBoxContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "スタートに戻る"
-
-[connection signal="pressed" from="Control/VBoxContainer/RestartButton" to="." method="_on_restart_pressed"]
-[connection signal="pressed" from="Control/VBoxContainer/BackToStartButton" to="." method="_on_back_to_start_pressed"]
+[connection signal="pressed" from="Control/MainContainer/ButtonsContainer/RetryButton" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="Control/MainContainer/ButtonsContainer/MenuButton" to="." method="_on_back_to_start_pressed"]

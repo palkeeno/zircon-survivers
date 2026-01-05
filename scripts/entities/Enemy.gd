@@ -164,6 +164,12 @@ func die():
 		return
 	_is_dead = true
 
+	# GameManager に撃破を通知
+	if has_node("/root/GameManager"):
+		var gm = get_node("/root/GameManager")
+		if gm.has_method("add_enemy_kill"):
+			gm.add_enemy_kill(1)
+
 	# 撃破時に敵が即座にプールへ戻ると、敵配下のダメージ数字も消えてしまう。
 	# 先にダメージ数字を親へ移して表示を継続する。
 	var keep_parent: Node = get_parent()
