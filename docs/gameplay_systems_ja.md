@@ -18,12 +18,14 @@
 ### 1.1 基本ステータス
 `Player.gd` の代表値:
 
-- `speed` (初期: 200.0)
-- `max_hp` (初期: 100.0)
-- `armor` (初期: 0.0) … 敵接触ダメージを「敵1体ごと」に減算
-- `pickup_range` (初期: 50.0) … XP/loot の吸い寄せ範囲（MagnetAreaの半径）
+| 変数 | 初期値 | 説明 |
+|------|--------|------|
+| `speed` | 200.0 | 移動速度 |
+| `max_hp` | 100.0 | 最大HP |
+| `armor` | 0.0 | 接触ダメージ軽減（1体ごとに減算） |
+| `pickup_range` | 50.0 | Lootの吸い寄せ範囲（MagnetArea半径） |
 
-初期値は `_base_speed/_base_max_hp/_base_pickup_range/_base_armor` に保存され、パッシブなどの再計算時に「base + 修正」で再適用されます。
+初期値は `_base_*` に保存され、パッシブなどの再計算時に「base + 修正」で再適用されます。
 
 ### 1.2 操作と照準
 - 移動入力は
@@ -55,7 +57,7 @@
 - パッシブ由来のリジェネは `_regen_per_sec` に蓄積され、`_process` 内で `current_hp += _regen_per_sec * delta`。
 
 ### 1.7 経験値取得（MagnetArea）
-- 起動時に `MagnetArea`(Area2D) を生成し、Loot 레イヤー（mask=16）を検知。
+- 起動時に `MagnetArea`(Area2D) を生成し、Loot レイヤー（mask=16）を検知。
 - `area_entered` で対象が `collect()` を持つ場合は `area.collect(self)` を呼ぶ。
   - XPジェムは `collect()` された後、プレイヤーに向かってホーミングします（詳細は後述）。
 
@@ -71,9 +73,12 @@
 ### 2.1 基本ステータスとAI
 `Enemy.gd` の代表値:
 
-- `speed` (初期: 100.0)
-- `damage` (初期: 10.0) … プレイヤー接触ダメージ源
-- `hp` (初期: 10.0) … Max HPとして扱い、`spawn()` で `current_hp = hp`
+| 変数 | 初期値 | 説明 |
+|------|--------|------|
+| `speed` | 100.0 | 移動速度 |
+| `damage` | 10.0 | プレイヤー接触ダメージ |
+| `hp` | 10.0 | MaxHP。`spawn()` で `current_hp = hp` |
+| `xp_value` | 1 | 撃破時に落とすXP量 |
 
 AI:
 - `GameManager.player_reference` を追跡対象に保持し、`_physics_process` で単純追尾。
@@ -82,6 +87,9 @@ AI:
 ### 2.2 被弾/死亡
 - `take_damage(amount)` で `current_hp` を減算。
 - 0以下で `die()`。
+
+撃破カウント:
+- `die()` 内で `GameManager.add_enemy_kill(1)` を呼び出し、総撃破数を集計。
 
 プール運用:
 - 撃破後は `PoolManager.return_instance(self, scene_file_path)` があればプールへ返却（なければ `queue_free()`）。
@@ -96,9 +104,11 @@ AI:
   - ボス: Magnet 1個確定 + 追加で通常確率でもう1個（Heart/Shieldのみ）
 
 アイテム抽選重み:
-- Heart: 45
-- Shield: 45
-- Magnet: 10（かなり低い）
+| アイテム | 重み |
+|----------|------|
+| Heart | 45 |
+| Shield | 45 |
+| Magnet | 10（かなり低い） |
 
 ---
 
@@ -124,9 +134,11 @@ AI:
 ### 4.1 プレイヤーの経験値・レベル
 `Player.gd`:
 
-- `experience` 初期 0
-- `level` 初期 1
-- `next_level_xp` 初期 5
+| 変数 | 初期値 | 説明 |
+|------|--------|------|
+| `experience` | 0 | 現在の経験値 |
+| `level` | 1 | 現在レベル |
+| `next_level_xp` | 5 | 次レベルまでの必要経験値 |
 
 経験値取得:
 - `add_experience(amount)`
@@ -156,6 +168,8 @@ AI:
 `LevelUpScreen.gd`:
 - `process_mode = PROCESS_MODE_ALWAYS`（ポーズ中でもUIは動く）
 - `level_up_choice_requested` を受けて表示し、オファー生成
+- ローカライズ対応済（`Localization.ability_name()` / `ability_desc()` を使用）
+- 詳細モード（`_detail_mode`）: 短縮表示から詳細表示への切り替えをサポート
 - 選択後は
   - `LoadoutManager.ApplyOffer()` を呼ぶ
   - `get_tree().paused = false`
@@ -163,9 +177,79 @@ AI:
 
 ---
 
-## 5. ロードアウト/アビリティ（C#）
+## 5. ゲーム管理（GameManager）
 
-### 5.1 スロット種別
+### 5.1 ゲーム状態
+```gdscript
+enum GameState {
+    MENU,
+    PLAYING,
+    PAUSED,
+    GAME_OVER,
+    LEVEL_UP
+}
+```
+
+### 5.2 時間制限サバイバル
+- `max_run_time_sec`（Export, デフォルト 300.0 = 5分）
+- `run_time_sec` が `max_run_time_sec` に達すると `trigger_game_clear("timeout")` が呼ばれ、サバイバル成功（クリア）となる。
+- `time_left_changed(time_left_sec)` シグナルでHUDに残り時間を通知。
+
+### 5.3 スコア・撃破数
+- `score`: コイン取得で加算（`add_score()`）
+- `enemies_killed`: 敵撃破で加算（`add_enemy_kill()`）
+- それぞれ `score_changed`, `enemies_killed_changed` シグナルを発行。
+
+### 5.4 ラン終了とリザルト（GameRunResult）
+ラン終了時に `GameRunResult` オブジェクトを生成し、`last_run_result` に保持。
+
+```gdscript
+class GameRunResult:
+    enum EndType {
+        FAILED,    # プレイヤー死亡
+        TIME_UP,   # 制限時間到達（サバイバル成功）
+        ESCAPED,   # 脱出成功（将来用）
+    }
+    var end_type: EndType
+    var run_time_sec: float
+    var final_level: int
+    var enemies_killed: int
+    var carry_over_resources: Dictionary  # ラン中に獲得したジルコイン
+    var carried_zircoin: int              # 持ち帰り率適用後
+    var carry_over_rate: float
+    var final_build: Array
+```
+
+持ち帰り率（`CARRY_OVER_RATE`）:
+| EndType | 率 |
+|---------|-----|
+| FAILED | 0% |
+| TIME_UP | 100% |
+| ESCAPED | 70% |
+
+持ち帰ったジルコインは `SaveDataManager.add_zircoin()` でセーブされます。
+
+### 5.5 シグナル一覧
+| シグナル | 内容 |
+|----------|------|
+| `game_started` | ゲーム開始 |
+| `game_over` | ゲーム終了（後方互換用） |
+| `game_ended(is_clear, reason)` | ゲーム終了（詳細版） |
+| `game_paused(is_paused)` | ポーズ状態変化 |
+| `level_up_choice_requested` | レベルアップ選択画面要求 |
+| `run_time_changed(time_sec)` | 経過時間更新 |
+| `time_left_changed(time_left_sec)` | 残り時間更新 |
+| `minute_reached(minute)` | 分経過時 |
+| `miniboss_requested(minute)` | ミニボス生成要求 |
+| `boss_requested(boss_index)` | ボス生成要求 |
+| `score_changed(total_score)` | スコア変化 |
+| `enemies_killed_changed(total_killed)` | 撃破数変化 |
+
+---
+
+## 6. ロードアウト/アビリティ（C#）
+
+### 6.1 スロット種別
 - `Weapon`（武器）
 - `Special`（スペシャル）
   - `Passive`（常時効果）
@@ -175,7 +259,7 @@ AI:
 - `MaxWeapons = 4`
 - `MaxSpecials = 4`
 
-### 5.2 オファー（レベルアップ時の提示）生成
+### 6.2 オファー（レベルアップ時の提示）生成
 実装: `OfferGenerator.Generate()`
 
 - 1回のレベルアップで `offerCount` 個（UI側は 4）提示
@@ -186,7 +270,7 @@ AI:
   - 候補は `AbilityDatabase.Weight` による重み付き抽選
   - 同じターゲットIDの重複提示は避ける
 
-### 5.3 “Upgrade” はランダム
+### 6.3 "Upgrade" はランダム
 `LoadoutManager.UpgradeWeapon()`:
 - `AbilityInstance.LevelUp()`（レベルだけ上がる。効果は下の upgrades で決まる）
 - `ApplyRandomUpgrade(rng)` で「その武器の upgradeId をランダムに 1 stack 増やす」
@@ -194,18 +278,19 @@ AI:
 
 ※UI上の表示も「Upgrade (random)」表記になっています。
 
-### 5.4 パッシブ（Special/Passive）の集計と適用
+### 6.4 パッシブ（Special/Passive）の集計と適用
 `LoadoutManager.RecomputeAndApplyPassives()` が specials を走査して集計し、`Player.set_stat_modifiers(dict)` を呼びます。
 
 現状の係数（stacks は該当upgradeIdのスタック数）:
 
-- `passive_might` : `damageMult *= 1 + 0.07 * stacks(might_up)`
-- `passive_haste` : `cooldownMult *= 1 - 0.05 * stacks(haste_up)`
-  - `cooldownMult` は下限 0.2
-- `passive_armor` : `armorBonus += 1.5 * stacks(armor_up)`
-- `passive_vitality` : `maxHpBonus += 10.0 * stacks(hp_up)`
-- `passive_regen` : `regenPerSec += 0.35 * stacks(regen_up)`
-- `passive_magnet` : `magnetMult *= 1 + 0.2 * stacks(magnet_up)`
+| パッシブID | 効果 |
+|------------|------|
+| `passive_might` | `damageMult *= 1 + 0.07 * stacks(might_up)` |
+| `passive_haste` | `cooldownMult *= 1 - 0.05 * stacks(haste_up)` (下限 0.2) |
+| `passive_armor` | `armorBonus += 1.5 * stacks(armor_up)` |
+| `passive_vitality` | `maxHpBonus += 10.0 * stacks(hp_up)` |
+| `passive_regen` | `regenPerSec += 0.35 * stacks(regen_up)` |
+| `passive_magnet` | `magnetMult *= 1 + 0.2 * stacks(magnet_up)` |
 
 `Player.set_stat_modifiers()`:
 - `armor = base_armor + armorBonus`
@@ -213,7 +298,7 @@ AI:
 - `pickup_range = base_pickup_range * magnetMult`（MagnetArea半径にも反映）
 - 武器側には `owner_damage_mult` と `owner_cooldown_mult` を注入
 
-### 5.5 AutoActive（Special/AutoActive）
+### 6.5 AutoActive（Special/AutoActive）
 `LoadoutManager._Process` でポーズ中は停止し、`TickAutoActives(delta)` を回します。
 
 - 発動間隔（クールダウン）
@@ -223,17 +308,20 @@ AI:
   - さらに `passive_haste` により `cooldownMult *= 1 - 0.05*stacks(haste_up)`（下限0.2）
 
 発動時の Player 側呼び出し:
-- `auto_phase` → `Player.do_phase(duration)`
-- `auto_vacuum` → `Player.do_vacuum(radius)`
-- `auto_slow_zone` → `Player.do_slow_zone(radius, slowStrength, zoneDuration)`
+
+| AutoActive ID | Player関数 | 効果 |
+|---------------|------------|------|
+| `auto_phase` | `do_phase(duration)` | 一時無敵 |
+| `auto_vacuum` | `do_vacuum(radius)` | 範囲内lootを吸い寄せ |
+| `auto_slow_zone` | `do_slow_zone(radius, slowStrength, zoneDuration)` | 敵を減速 |
 
 `auto_slow_zone` は対象敵の `speed` を一時的に書き換え、Timerで元に戻します（敵側に `base_speed` meta がない場合は保存します）。
 
 ---
 
-## 6. 武器（Weapon）とアップグレード反映
+## 7. 武器（Weapon）とアップグレード反映
 
-### 6.1 武器基底クラス
+### 7.1 武器基底クラス
 `Weapon.gd`:
 
 - 代表パラメータ
@@ -246,14 +334,14 @@ AI:
   - `_process` で cooldown が空いたら `_try_shoot()`（各武器でoverride）
   - クールダウン実効値は `cooldown * owner_cooldown_mult`
 
-### 6.2 “武器強化”の適用方式（重要）
+### 7.2 "武器強化"の適用方式（重要）
 `Player.apply_weapon_upgrade()` は、武器ノードに保存した `base_*` 値から「スタック数に応じて決定論的に再計算」して反映します。
 
 - 例: ダメージ上昇が複利（`pow(1.1, stacks)`）の場合、
   - 1回強化→ +10%
   - 2回強化→ +21%（base×1.1×1.1）
 
-### 6.3 武器一覧（AbilityDatabase定義）と強化の実数式
+### 7.3 武器一覧（AbilityDatabase定義）と強化の実数式
 
 #### Magic Wand (`weapon_magic_wand`)
 - シーン: `res://scenes/weapons/MagicWand.tscn`
@@ -332,36 +420,45 @@ AI:
 
 ---
 
-## 7. スペシャル（Special）一覧（AbilityDatabase）
+## 8. スペシャル（Special）一覧（AbilityDatabase）
 
-### 7.1 Passive
-- Might (`passive_might`) : 全武器ダメージ増加（LoadoutManagerが `damage_mult` として注入）
-- Haste Matrix (`passive_haste`) : 全武器CD短縮（`cooldown_mult`。下限0.2あり）
-- Armor (`passive_armor`) : 接触ダメージ軽減（`armor` に加算）
-- Vitality (`passive_vitality`) : 最大HP増加
-- Regeneration (`passive_regen`) : 毎秒回復
-- Magnet (`passive_magnet`) : `pickup_range` 増加（MagnetArea半径拡大）
+### 8.1 Passive
+| ID | 名前 | 効果 |
+|----|------|------|
+| `passive_might` | Might | 全武器ダメージ増加 (+7%/stack) |
+| `passive_haste` | Haste Matrix | 全武器CD短縮 (-5%/stack, 下限0.2) |
+| `passive_armor` | Armor | 接触ダメージ軽減 (+1.5/stack) |
+| `passive_vitality` | Vitality | 最大HP増加 (+10/stack) |
+| `passive_regen` | Regeneration | 毎秒回復 (+0.35/sec/stack) |
+| `passive_magnet` | Magnet | pickup_range増加 (+20%/stack) |
 
-### 7.2 AutoActive
-- Phase Cloak (`auto_phase`) : 一定間隔で無敵（フェーズ）
-- Vacuum (`auto_vacuum`) : 一定間隔で範囲内のlootを `collect()` させて吸い寄せ
-- Frost Zone (`auto_slow_zone`) : 一定間隔で範囲内の敵の `speed` を減衰し、一定時間後に復帰
+### 8.2 AutoActive
+| ID | 名前 | ベースCD | 効果 |
+|----|------|----------|------|
+| `auto_phase` | Phase Cloak | 24秒 | 一時無敵 |
+| `auto_vacuum` | Vacuum | 18秒 | 範囲内loot吸い寄せ |
+| `auto_slow_zone` | Frost Zone | 16秒 | 敵減速フィールド |
 
 ---
 
-## 8. UI上の見え方（参考）
+## 9. UI上の見え方（参考）
 
-- HUD は `Player` の `hp_changed/xp_changed/level_up/shield_changed` と `LoadoutManager.LoadoutChanged` を購読し、HP/XP/LV/装備アイコンを更新。
-- レベルアップ画面は C# から生成されたオファーをそのままボタン化し、押下で `ApplyOffer` を呼び出します。
+- HUD は `Player` の `hp_changed/xp_changed/level_up/shield_changed` と `LoadoutManager.LoadoutChanged`、`GameManager` の `time_left_changed/score_changed/enemies_killed_changed` を購読し、各種情報を更新。
+- レベルアップ画面は C# から生成されたオファーをそのままボタン化し、押下で `ApplyOffer` を呼び出します。ローカライズ対応済み。
 
 ---
 
 ## 付録: 「どこを直すと仕様が変わるか」早見
 
-- 経験値テーブル（必要XPの増え方）: `Player._check_level_up()`
-- レベルアップ時ポーズ: `GameManager.trigger_level_up_choice()`
-- オファーの出し方/重み: `OfferGenerator.Generate()` と `AbilityDatabase.Weight`
-- どのアップグレードがあるか/上限: `AbilityDatabase` と `UpgradeDef.MaxStacks`
-- アップグレードが何を変えるか（数式）: `Player.apply_weapon_upgrade()` と各 `_apply_*_upgrade()`
-- パッシブの係数: `LoadoutManager.RecomputeAndApplyPassives()`
-- AutoActive の効果: `LoadoutManager.TriggerAutoActive()` と `Player.do_*()`
+| 変更したい項目 | 編集箇所 |
+|----------------|----------|
+| 経験値テーブル（必要XPの増え方） | `Player._check_level_up()` |
+| レベルアップ時ポーズ | `GameManager.trigger_level_up_choice()` |
+| オファーの出し方/重み | `OfferGenerator.Generate()` と `AbilityDatabase.Weight` |
+| どのアップグレードがあるか/上限 | `AbilityDatabase` と `UpgradeDef.MaxStacks` |
+| アップグレードが何を変えるか（数式） | `Player.apply_weapon_upgrade()` と各 `_apply_*_upgrade()` |
+| パッシブの係数 | `LoadoutManager.RecomputeAndApplyPassives()` |
+| AutoActive の効果 | `LoadoutManager.TriggerAutoActive()` と `Player.do_*()` |
+| 制限時間 | `GameManager.max_run_time_sec` |
+| 持ち帰り率 | `GameManager.CARRY_OVER_RATE` |
+| 敵撃破カウント | `Enemy.die()` → `GameManager.add_enemy_kill()` |
