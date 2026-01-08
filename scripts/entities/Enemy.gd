@@ -15,6 +15,9 @@ static var _alpha_hull_cache: Dictionary = {}
 @export var is_miniboss: bool = false
 @export var is_boss: bool = false
 
+# ジルパワー用: この敵を倒した時に得られる意志ポイント
+@export var will_value: int = 1
+
 var current_hp: float
 
 var _is_dead: bool = false
@@ -169,6 +172,9 @@ func die():
 		var gm = get_node("/root/GameManager")
 		if gm.has_method("add_enemy_kill"):
 			gm.add_enemy_kill(1)
+		# 意志を付与
+		if gm.has_method("add_will"):
+			gm.add_will(will_value)
 
 	# 撃破時に敵が即座にプールへ戻ると、敵配下のダメージ数字も消えてしまう。
 	# 先にダメージ数字を親へ移して表示を継続する。

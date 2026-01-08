@@ -19,6 +19,8 @@ var _magnet_shape: CollisionShape2D
 
 var _weapon_nodes := {} # ability_id -> Node
 
+var _zirpower_manager: Node = null  # ZirPowerManager (C#)
+
 var _is_phased: bool = false
 var _phase_timer: float = 0.0
 
@@ -354,6 +356,30 @@ func _ready():
 		get_node("/root/GameManager").game_paused.connect(_on_game_paused)
 
 	_bootstrap_existing_weapon_nodes()
+	_initialize_zirpower_manager()
+
+
+func _initialize_zirpower_manager() -> void:
+	# ZirPowerManager (C#) を追加
+	var zirpower_manager_script = load("res://csharp/Loadout/ZirPowerManager.cs")
+	if zirpower_manager_script:
+		_zirpower_manager = Node.new()
+		_zirpower_manager.set_script(zirpower_manager_script)
+		_zirpower_manager.name = "ZirPowerManager"
+		add_child(_zirpower_manager)
+		
+		# キャラクターIDを取得して初期化
+		var character_id := "izumi"  # デフォルト
+		if has_node("/root/GameManager"):
+			var gm = get_node("/root/GameManager")
+			if "selected_character_id" in gm:
+				character_id = gm.selected_character_id
+		
+		if _zirpower_manager.has_method("InitializeForCharacter"):
+			_zirpower_manager.call("InitializeForCharacter", character_id)
+			print("ZirPowerManager initialized for character: ", character_id)
+	else:
+		print("Error: Could not load ZirPowerManager.cs")
 
 
 func _create_world_hp_ui() -> void:
@@ -1054,3 +1080,23 @@ func do_slow_zone(radius: float, slow_strength: float, duration: float):
 				enemy.speed = float(enemy.get_meta("base_speed"))
 	)
 	t.start()
+
+
+## ジルパワーを発動（UIから呼ばれる）
+func activate_zirpower(zirpower_id: String) -> void:
+	if _zirpower_manager and _zirpower_manager.has_method("ActivateZirPower"):
+		_zirpower_manager.call("ActivateZirPower", zirpower_id)
+	else:
+		print("Error: ZirPowerManager not initialized")
+
+
+## ジルパワーが発動可能かチェック
+func can_activate_zirpower(zirpower_id: String) -> bool:
+	if _zirpower_manager and _zirpower_manager.has_method("CanActivateZirPower"):
+		return _zirpower_manager.call("CanActivateZirPower", zirpower_id)
+	return false
+
+
+## ZirPowerManagerへの参照を取得
+func get_zirpower_manager() -> Node:
+	return _zirpower_manager

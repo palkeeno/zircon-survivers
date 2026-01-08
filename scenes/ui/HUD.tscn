@@ -224,5 +224,19 @@ text = "100 / 100"
 layout_mode = 2
 text = "🛡 x0"
 
+[node name="ZirPowerContainer" type="VBoxContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -180.0
+offset_top = -220.0
+offset_right = -40.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 12
+
 [node name="PauseMenu" parent="." instance=ExtResource("2_pause_menu")]
 visible = false

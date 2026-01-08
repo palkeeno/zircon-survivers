@@ -24,6 +24,15 @@ var score: int = 0
 signal enemies_killed_changed(total_killed)
 var enemies_killed: int = 0
 
+# Will system (ジルパワー用の意志システム)
+signal will_changed(current_percent: int)  # 0～100のパーセント値
+signal will_full  # 100%到達時の通知
+var will_points: int = 0
+var will_max_points: int = 200  # アルティメット発動に必要なポイント（メテオストライク用）
+
+# Selected character
+var selected_character_id: String = "izumi"
+
 # 持ち帰り率（EndType別）
 const CARRY_OVER_RATE := {
 	0: 0.0,   # FAILED - 0%
@@ -142,6 +151,48 @@ func add_enemy_kill(count: int = 1) -> void:
 	emit_signal("enemies_killed_changed", enemies_killed)
 
 
+## 意志を追加（敵撃破時に呼ばれる）
+func add_will(amount: int) -> void:
+	# 既に100%に達している場合は追加しない
+	if will_points >= will_max_points:
+		return
+	
+	var old_percent := get_will_percent()
+	will_points = mini(will_points + amount, will_max_points)
+	var new_percent := get_will_percent()
+	
+	if old_percent != new_percent:
+		emit_signal("will_changed", new_percent)
+	
+	# 100%到達時の特別な通知(演出トリガー用)
+	if old_percent < 100 and new_percent >= 100:
+		emit_signal("will_full")
+
+
+## アルティメット使用時に意志を消費
+func consume_will_for_ultimate() -> bool:
+	if will_points >= will_max_points:
+		will_points = 0  # 100%をすべて消費して0%に
+		emit_signal("will_changed", 0)
+		return true
+	return false
+
+
+## 意志のパーセント値を取得（0～100）
+func get_will_percent() -> int:
+	return int(floor(float(will_points) / float(will_max_points) * 100.0))
+
+
+## 意志が満タンかどうか
+func is_will_full() -> bool:
+	return will_points >= will_max_points
+
+
+## キャラクター選択を設定
+func set_selected_character(character_id: String) -> void:
+	selected_character_id = character_id
+
+
 ## 現在のラン結果を生成
 func build_run_result(end_type: GameRunResult.EndType) -> GameRunResult:
 	var final_level := 1
@@ -227,6 +278,10 @@ func reset_game():
 	current_state = GameState.PLAYING
 	# Reload scene handles most reset, but we might need to reset autoload state if any.
 	player_reference = null
+	
+	# 意志システムをリセット
+	will_points = 0
+	emit_signal("will_changed", 0)
 	score = 0
 	enemies_killed = 0
 	last_end_is_clear = false

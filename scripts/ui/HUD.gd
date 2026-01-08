@@ -13,8 +13,10 @@ extends CanvasLayer
 @onready var pause_button: Button = $Control/MarginContainer/VBoxContainer/SecondRow/PauseButton
 @onready var pause_menu: CanvasLayer = $PauseMenu
 @onready var item_indicators_layer: Control = $Control/ItemIndicators
+@onready var zirpower_container: VBoxContainer = $Control/ZirPowerContainer
 
 var _loadout_manager: Node = null
+var _zirpower_buttons_initialized: bool = false
 
 var _timer_fx_tween: Tween = null
 var _timer_default_modulate: Color = Color(1, 1, 1, 1)
@@ -271,6 +273,10 @@ func _connect_player(player):
 				_loadout_manager.connect("LoadoutChanged", Callable(self, "_on_loadout_changed"))
 			_on_loadout_changed()
 	
+	# ジルパワーボタンの初期化
+	if not _zirpower_buttons_initialized:
+		_initialize_zirpower_buttons(player)
+	
 	# Initial update
 	_on_hp_changed(player.current_hp, player.max_hp)
 	_on_xp_changed(player.experience, player.next_level_xp)
@@ -437,3 +443,57 @@ func _play_timer_alert(is_boss: bool) -> void:
 	_timer_fx_tween.set_parallel(true)
 	_timer_fx_tween.tween_property(time_label, "scale", _timer_default_scale, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_timer_fx_tween.tween_property(time_label, "modulate", _timer_default_modulate, 0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+## ジルパワーボタンを初期化
+func _initialize_zirpower_buttons(player: CharacterBody2D) -> void:
+	if _zirpower_buttons_initialized or zirpower_container == null:
+		return
+	
+	print("Initializing ZirPower buttons...")
+	
+	# PlayerのZirPowerManagerから直接取得
+	var zirpower_manager = player.get_zirpower_manager()
+	if not zirpower_manager:
+		print("Error: ZirPowerManager not found on player")
+		return
+	
+	# すべてのジルパワーを取得（GDScript互換メソッド使用）
+	if not zirpower_manager.has_method("GetAllZirPowersForGDScript"):
+		print("Error: GetAllZirPowersForGDScript method not found. Make sure C# project is built.")
+		return
+	
+	var all_zirpowers = zirpower_manager.GetAllZirPowersForGDScript()
+	if all_zirpowers.is_empty():
+		print("No zirpowers found for this character")
+		return
+	
+	print("Found ", all_zirpowers.size(), " zirpowers")
+	
+	# ZirPowerButtonシーンをロード
+	var button_scene = load("res://scenes/ui/ZirPowerButton.tscn")
+	if not button_scene:
+		print("Error: ZirPowerButton.tscn not found")
+		return
+	
+	# アルティメットを先に（上に）、アクティブを後に（下に）追加
+	# まずアルティメット（type == 1）を追加
+	for zirpower_data in all_zirpowers:
+		if zirpower_data["type"] == 1:  # Ultimate
+			var button_instance = button_scene.instantiate()
+			button_instance.zirpower_id = zirpower_data["id"]
+			button_instance.set_player(player)
+			zirpower_container.add_child(button_instance)
+			print("Added Ultimate button for: ", zirpower_data["name"], " (", zirpower_data["id"], ")")
+	
+	# 次にアクティブ（type == 0）を追加
+	for zirpower_data in all_zirpowers:
+		if zirpower_data["type"] == 0:  # Active
+			var button_instance = button_scene.instantiate()
+			button_instance.zirpower_id = zirpower_data["id"]
+			button_instance.set_player(player)
+			zirpower_container.add_child(button_instance)
+			print("Added Active button for: ", zirpower_data["name"], " (", zirpower_data["id"], ")")
+	
+	_zirpower_buttons_initialized = true
+	print("ZirPower buttons initialization complete")
