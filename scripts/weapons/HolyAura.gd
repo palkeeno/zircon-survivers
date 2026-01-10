@@ -34,8 +34,8 @@ func _ensure_area() -> void:
 	_area.name = "AuraArea"
 	_area.monitoring = true
 	_area.monitorable = true
-	_area.collision_layer = 0
-	_area.collision_mask = 4 # Enemy layer (value 4)
+	_area.collision_layer = PhysicsLayers.NONE
+	_area.collision_mask = PhysicsLayers.ENEMY
 	add_child(_area)
 
 	_shape = CollisionShape2D.new()

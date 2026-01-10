@@ -94,8 +94,8 @@ func _sync_hitboxes() -> void:
 		a.monitoring = true
 		a.monitorable = true
 		# Weapons don't need a layer; only a mask to detect enemies.
-		a.collision_layer = 0
-		a.collision_mask = 4 # Enemy layer (value 4)
+		a.collision_layer = PhysicsLayers.NONE
+		a.collision_mask = PhysicsLayers.ENEMY
 		var cs := CollisionShape2D.new()
 		var shape := CircleShape2D.new()
 		shape.radius = maxf(1.0, hit_radius)

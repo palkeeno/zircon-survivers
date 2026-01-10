@@ -356,8 +356,8 @@ func _spawn_boundary_walls(offset: Vector2i) -> void:
 
 func _spawn_edge_wall(world_cell: Vector2i, dir: Vector2i) -> void:
 	var body := StaticBody2D.new()
-	body.collision_layer = 1
-	body.collision_mask = 0
+	body.collision_layer = PhysicsLayers.WORLD
+	body.collision_mask = PhysicsLayers.NONE
 	body.position = _cell_to_local_center(world_cell)
 	_walls.add_child(body)
 
@@ -385,8 +385,8 @@ func _spawn_edge_wall(world_cell: Vector2i, dir: Vector2i) -> void:
 func _spawn_obstacle(world_cell: Vector2i) -> void:
 	# Visible + collidable blocked tile.
 	var body := StaticBody2D.new()
-	body.collision_layer = 1
-	body.collision_mask = 0
+	body.collision_layer = PhysicsLayers.WORLD
+	body.collision_mask = PhysicsLayers.NONE
 	body.position = _cell_to_local_center(world_cell)
 	_obstacles.add_child(body)
 

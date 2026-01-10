@@ -34,6 +34,17 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 pointing/emulate_touch_from_mouse=true
 
+[layer_names]
+
+2d_physics/layer_1="world"
+2d_physics/layer_2="player"
+2d_physics/layer_3="enemy"
+2d_physics/layer_4="player_projectile"
+2d_physics/layer_5="loot"
+2d_physics/layer_6="enemy_projectile"
+2d_physics/layer_7="trigger"
+2d_physics/layer_8="hurtbox"
+
 [rendering]
 
 renderer/rendering_method="mobile"

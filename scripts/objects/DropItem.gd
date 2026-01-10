@@ -85,8 +85,8 @@ func _despawn() -> void:
 	# Prevent repeat pickup while returning to pool.
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
-	set_deferred("collision_layer", 0)
-	set_deferred("collision_mask", 0)
+	set_deferred("collision_layer", PhysicsLayers.NONE)
+	set_deferred("collision_mask", PhysicsLayers.NONE)
 	var cs: CollisionShape2D = get_node_or_null("CollisionShape2D")
 	if cs:
 		cs.set_deferred("disabled", true)

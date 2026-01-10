@@ -11,7 +11,7 @@ class_name PiercingBeam
 @export var spread_degrees: float = 10.0
 
 @export var max_bounces: int = 0
-@export var wall_collision_mask: int = 1
+@export var wall_collision_mask: int = PhysicsLayers.WORLD
 
 
 func _try_shoot() -> bool:

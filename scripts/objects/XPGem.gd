@@ -59,8 +59,8 @@ func _despawn():
 	# Prevent repeated collection while returning to pool.
 	monitoring = false
 	monitorable = false
-	collision_layer = 0
-	collision_mask = 0
+	collision_layer = PhysicsLayers.NONE
+	collision_mask = PhysicsLayers.NONE
 	var cs: CollisionShape2D = get_node_or_null("CollisionShape2D")
 	if cs:
 		cs.disabled = true

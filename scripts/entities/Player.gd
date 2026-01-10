@@ -308,8 +308,8 @@ func _ready():
 	# 1. Hurtbox (Enemy Collision)
 	var hurtbox = Area2D.new()
 	hurtbox.name = "Hurtbox"
-	hurtbox.collision_layer = 0
-	hurtbox.collision_mask = 4 # Enemy Layer (3, value 4)
+	hurtbox.collision_layer = PhysicsLayers.NONE
+	hurtbox.collision_mask = PhysicsLayers.ENEMY
 	add_child(hurtbox)
 	
 	var hurt_shape = CollisionShape2D.new()
@@ -324,8 +324,8 @@ func _ready():
 	# 2. Magnet Area (XP Collection)
 	_magnet_area = Area2D.new()
 	_magnet_area.name = "MagnetArea"
-	_magnet_area.collision_layer = 0
-	_magnet_area.collision_mask = 16 # Loot Layer (5, value 16)
+	_magnet_area.collision_layer = PhysicsLayers.NONE
+	_magnet_area.collision_mask = PhysicsLayers.LOOT
 	add_child(_magnet_area)
 	
 	_magnet_shape = CollisionShape2D.new()
